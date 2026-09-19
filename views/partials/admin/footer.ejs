@@ -1,0 +1,187 @@
+ y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="admin-wrapper">
+  <%- include('../partials/users/sidebar') %>
+
+  <div class="admin-main">
+    <%- include('../partials/admin/header') %>
+
+    <div class="admin-content">
+
+      <!-- Enhanced Header (Server icon and purple background removed) -->
+      <div class="page-header-enhanced">
+        <div style="position: relative; z-index: 1;">
+          <h1 class="page-title-enhanced">
+            My Virtual Machines
+          </h1>
+          <p class="page-subtitle-enhanced">
+            Manage and monitor your assigned virtual machines
+            <span class="live-badge"><span class="pulse"></span>Live · Auto-refresh 30s</span>
+            <span id="lastUpdate" style="opacity: 0.7;"></span>
+          </p>
+        </div>
+        <div style="position: relative; z-index: 1;">
+          <button class="btn-refresh" id="refreshBtn" onclick="loadVMs()">
+            <svg class="icon"><use href="#i-refresh"/></svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-enhanced">
+        <div class="stat-card-enhanced" style="--accent-color: var(--color-indigo);" onclick="quickFilter('')" data-filter="">
+          <div class="stat-inner">
+            <div>
+              <div class="stat-value-enhanced" id="totalCount">—</div>
+              <div class="stat-label-enhanced">Total VMs</div>
+            </div>
+            <div class="stat-icon-box"><svg class="icon"><use href="#i-server"/></svg></div>
+          </div>
+        </div>
+        <div class="stat-card-enhanced" style="--accent-color: var(--color-emerald);" onclick="quickFilter('running')" data-filter="running">
+          <div class="stat-inner">
+            <div>
+              <div class="stat-value-enhanced" id="runningCount">—</div>
+              <div class="stat-label-enhanced">Running</div>
+            </div>
+            <div class="stat-icon-box"><svg class="icon"><use href="#i-play"/></svg></div>
+          </div>
+        </div>
+        <div class="stat-card-enhanced" style="--accent-color: var(--color-gray);" onclick="quickFilter('stopped')" data-filter="stopped">
+          <div class="stat-inner">
+            <div>
+              <div class="stat-value-enhanced" id="stoppedCount">—</div>
+              <div class="stat-label-enhanced">Stopped</div>
+            </div>
+            <div class="stat-icon-box"><svg class="icon"><use href="#i-stop"/></svg></div>
+          </div>
+        </div>
+        <div class="stat-card-enhanced" style="--accent-color: var(--color-cyan);">
+          <div class="stat-inner">
+            <div>
+              <div class="stat-value-enhanced" id="totalMemory">—</div>
+              <div class="stat-label-enhanced">Total RAM</div>
+            </div>
+            <div class="stat-icon-box"><svg class="icon"><use href="#i-mem"/></svg></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar-enhanced">
+        <div class="search-wrap">
+          <svg class="search-icon-svg"><use href="#i-search"/></svg>
+          <input type="text" class="search-input" id="vmSearch" placeholder="Search by name, ID, OS, or IP..." oninput="renderVMs()">
+        </div>
+        <select class="filter-select" id="statusFilter" onchange="renderVMs()">
+          <option value="">All Status</option>
+          <option value="running">🟢 Running</option>
+          <option value="stopped">⚫ Stopped</option>
+          <option value="error">🔴 Error</option>
+        </select>
+        <div class="view-switcher">
+          <button class="view-btn" id="viewGrid" onclick="setView('grid')" title="Grid view">
+            <svg class="icon"><use href="#i-grid"/></svg>
+          </button>
+          <button class="view-btn active" id="viewList" onclick="setView('list')" title="List view">
+            <svg class="icon"><use href="#i-list"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- VMs Container -->
+      <div id="vmContainer">
+        <div class="vm-grid">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <%- include('../partials/admin/footer') %>
+  </div>
+</div>
+
+<script>
+let allVMs = [];
+let currentView = 'list';
+
+function formatMem(mem) {
+  if (!mem) return '—';
+  return mem >= 1024 ? (mem / 1024).toFixed(1) + ' GB' : mem + ' MB';
+}
+
+function formatTime() {
+  return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function getStatusClass(status) {
+  return status || 'stopped';
+}
+
+function setView(view) {
+  currentView = view;
+  document.getElementById('viewGrid').classList.toggle('active', view === 'grid');
+  document.getElementById('viewList').classList.toggle('active', view === 'list');
+  renderVMs();
+}
+
+function quickFilter(status) {
+  document.getElementById('statusFilter').value = status;
+  document.querySelectorAll('.stat-card-enhanced[data-filter]').forEach(c => {
+    c.classList.toggle('active', c.dataset.filter === status);
+  });
+  renderVMs();
+}
+
+async function loadVMs() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  
+  try {
+    const res = await fetch('/api/vms');
+    if (!res.ok) throw new Error('Failed to fetch VMs');
+    allVMs = await res.json();
+    
+    const total = allVMs.length;
+    const running = allVMs.filter(v => v.status === 'running').length;
+    const stopped = allVMs.filter(v => v.status === 'stopped').length;
+    const totalMem = allVMs.reduce((s, v) => s + (v.memory || 0), 0);
+
+    animateNumber('totalCount', total);
+    animateNumber('runningCount', running);
+    animateNumber('stoppedCount', stopped);
+    document.getElementById('totalMemory').textContent = formatMem(totalMem);
+    document.getElementById('lastUpdate').textContent = `· Updated ${formatTime()}`;
+
+    renderVMs();
+  } catch(e) {
+    document.getElementById('vmContainer').innerHTML = `
+      <div class="empty-enhanced">
+        <div class="empty-icon-wrap" style="color: var(--color-red); background: linear-gradient(135deg, var(--color-red-light), rgba(239,68,68,0.05));">
+          <svg class="icon"><use href="#i-alert"/></svg>
+        </div>
+        <div class="empty-title">Failed to Load VMs</div>
+        <div class="empty-desc">${escHtml(e.message)}</div>
+        <button class="btn-refresh" onclick="loadVMs()">
+          <svg class="icon"><use href="#i-refresh"/></svg> Try Again
+        </button>
+      </div>`;
+    showToast('Failed to load VMs: ' + e.message, 'error');
+  } finally {
+    setTimeout(() => btn.classList.remove('spinning'), 500);
+  }
+}
+
+function getFilteredVMs() {
+  const q = document.getElementById('vmSearch')?.value.toLowerCase() || '';
+  const status = document.getElementById('statusFilter')?.value || '';
+  
+  return allVMs.filter(vm => {
+    const matchQ =

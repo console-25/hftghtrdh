@@ -1,0 +1,309 @@
+ase().includes(q) ||
+      vm.template_name?.toLowerCase().includes(q) ||
+      vm.ipv4_address?.includes(q);
+    const matchStatus = !status || vm.status === status;
+    return matchQ && matchStatus;
+  });
+}
+
+function renderVMs() {
+  const filtered = getFilteredVMs();
+  const container = document.getElementById('vmContainer');
+  
+  if (allVMs.length === 0) {
+    container.innerHTML = `
+      <div class="empty-enhanced">
+        <div class="empty-icon-wrap"><svg class="icon"><use href="#i-server"/></svg></div>
+        <div class="empty-title">No Virtual Machines</div>
+        <div class="empty-desc">You don't have any VMs assigned yet. Contact your administrator to request virtual machines.</div>
+      </div>`;
+    return;
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty-enhanced">
+        <div class="empty-icon-wrap"><svg class="icon"><use href="#i-search"/></svg></div>
+        <div class="empty-title">No VMs Found</div>
+        <div class="empty-desc">No VMs match your search criteria. Try a different filter.</div>
+      </div>`;
+    return;
+  }
+
+  if (currentView === 'grid') {
+    renderGridView(filtered, container);
+  } else {
+    renderListView(filtered, container);
+  }
+}
+
+function renderGridView(vms, container) {
+  container.innerHTML = `
+    <div class="vm-grid">
+      ${vms.map(vm => renderVMCard(vm)).join('')}
+    </div>`;
+}
+
+function renderVMCard(vm) {
+  const icon = vm.template_icon;
+  const displayIcon = (icon && icon.startsWith('http')) ? icon : 'https://i.imgur.com/wu0Ob6B.png';
+  const status = vm.status || 'stopped';
+  
+  return `
+    <div class="vm-card-enhanced ${status}" onclick="window.location.href='/vm/${vm.vm_id}'">
+      <div class="vm-card-header">
+        <div class="vm-title-block">
+          <div class="vm-os-icon">
+            <img src="${displayIcon}" alt="OS" onerror="this.src='https://i.imgur.com/wu0Ob6B.png'">
+          </div>
+          <div style="min-width: 0; flex: 1;">
+            <div class="vm-name-enhanced">${escHtml(vm.vm_name)}</div>
+            <div class="vm-meta-enhanced">
+              <span>${escHtml(vm.template_name || vm.os_type || 'Custom')}</span>
+              <span class="vm-id-chip">#${vm.vm_id}</span>
+            </div>
+          </div>
+        </div>
+        <span class="status-badge ${status}">
+          <span class="status-dot"></span>${status}
+        </span>
+      </div>
+
+      <div class="vm-specs">
+        <div class="spec-item">
+          <div class="spec-icon-mini mem"><svg class="icon"><use href="#i-mem"/></svg></div>
+          <div class="spec-content">
+            <div class="spec-label">Memory</div>
+            <div class="spec-value">${vm.memory ? vm.memory + ' MB' : '—'}</div>
+          </div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-icon-mini cpu"><svg class="icon"><use href="#i-cpu"/></svg></div>
+          <div class="spec-content">
+            <div class="spec-label">vCPUs</div>
+            <div class="spec-value">${vm.cpus || '—'} Cores</div>
+          </div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-icon-mini disk"><svg class="icon"><use href="#i-disk"/></svg></div>
+          <div class="spec-content">
+            <div class="spec-label">Storage</div>
+            <div class="spec-value">${vm.disk_size || '—'}</div>
+          </div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-icon-mini net"><svg class="icon"><use href="#i-network"/></svg></div>
+          <div class="spec-content">
+            <div class="spec-label">Network</div>
+            <div class="spec-value">${vm.ipv4_address || vm.network_type || 'DHCP'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="vm-actions-enhanced" onclick="event.stopPropagation()">
+        ${status === 'stopped' 
+          ? `<button class="btn-action start" onclick="vmAction('start', ${vm.vm_id}, '${escHtml(vm.vm_name)}')">
+              <svg class="icon"><use href="#i-play"/></svg> Start
+            </button>`
+          : `<button class="btn-action stop" onclick="vmAction('stop', ${vm.vm_id}, '${escHtml(vm.vm_name)}')">
+              <svg class="icon"><use href="#i-stop"/></svg> Stop
+            </button>`
+        }
+        <a href="/vm/${vm.vm_id}" class="btn-action primary">
+          <svg class="icon"><use href="#i-info"/></svg> Info
+        </a>
+        <a href="/vm/${vm.vm_id}/console" class="btn-action">
+          <svg class="icon"><use href="#i-terminal"/></svg> Term
+        </a>
+        <a href="/vm/${vm.vm_id}/ssh" class="btn-action">
+          <svg class="icon"><use href="#i-key"/></svg> SSH
+        </a>
+      </div>
+    </div>
+  `;
+}
+
+function renderListView(vms, container) {
+  container.innerHTML = `
+    <div class="vm-table-wrap">
+      <div style="overflow-x: auto;">
+        <table class="vm-table">
+          <thead>
+            <tr>
+              <th>VM</th>
+              <th>Status</th>
+              <th>Resources</th>
+              <th>Storage</th>
+              <th>Network</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${vms.map(vm => {
+              const icon = vm.template_icon;
+              const displayIcon = (icon && icon.startsWith('http')) ? icon : 'https://i.imgur.com/wu0Ob6B.png';
+              const status = vm.status || 'stopped';
+              
+              return `
+              <tr>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="vm-os-icon" style="width: 36px; height: 36px; padding: 5px;">
+                      <img src="${displayIcon}" alt="OS" onerror="this.src='https://i.imgur.com/wu0Ob6B.png'">
+                    </div>
+                    <div>
+                      <a href="/vm/${vm.vm_id}" class="vm-name-link">${escHtml(vm.vm_name)}</a>
+                      <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                        <span class="vm-id-chip">#${vm.vm_id}</span>
+                        <span style="margin-left: 6px;">${escHtml(vm.template_name || vm.os_type || 'Custom')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="status-badge ${status}">
+                    <span class="status-dot"></span>${status}
+                  </span>
+                </td>
+                <td>
+                  <div style="display: flex; gap: 12px; font-size: 12px;">
+                    <div style="display: flex; align-items: center; gap: 5px;" title="vCPUs">
+                      <span style="color: #EC4899;"><svg class="icon" style="width:12px;height:12px"><use href="#i-cpu"/></svg></span>
+                      <strong style="color: var(--text-primary);">${vm.cpus || '—'}</strong>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px;" title="Memory">
+                      <span style="color: #10B981;"><svg class="icon" style="width:12px;height:12px"><use href="#i-mem"/></svg></span>
+                      <strong style="color: var(--text-primary);">${formatMem(vm.memory)}</strong>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+                    <span style="color: #06B6D4;"><svg class="icon" style="width:12px;height:12px"><use href="#i-disk"/></svg></span>
+                    <strong style="color: var(--text-primary);">${vm.disk_size || '—'}</strong>
+                  </div>
+                </td>
+                <td>
+                  <div style="font-size: 12px;">
+                    <div style="color: var(--text-primary); font-weight: 500;">${vm.ipv4_address || (vm.network_type === 'dhcp' ? 'DHCP' : '—')}</div>
+                    <div style="color: var(--text-muted); margin-top: 2px; font-family: monospace; font-size: 10px;">
+                      SSH: ${vm.ssh_port || vm.ssh_port_static || '22'}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap;">
+                    ${status === 'stopped'
+                      ? `<button class="btn-icon-only start" onclick="vmAction('start', ${vm.vm_id}, '${escHtml(vm.vm_name)}')" title="Start">
+                          <svg class="icon"><use href="#i-play"/></svg>
+                        </button>`
+                      : `<button class="btn-icon-only stop" onclick="vmAction('stop', ${vm.vm_id}, '${escHtml(vm.vm_name)}')" title="Stop">
+                          <svg class="icon"><use href="#i-stop"/></svg>
+                        </button>`
+                    }
+                    <button class="btn-icon-only restart" onclick="vmAction('restart', ${vm.vm_id}, '${escHtml(vm.vm_name)}')" title="Restart">
+                      <svg class="icon"><use href="#i-restart"/></svg>
+                    </button>
+                    <a href="/vm/${vm.vm_id}" class="btn-icon-only" title="Details">
+                      <svg class="icon"><use href="#i-info"/></svg>
+                    </a>
+                    <a href="/vm/${vm.vm_id}/console" class="btn-icon-only" title="Console">
+                      <svg class="icon"><use href="#i-terminal"/></svg>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function animateNumber(id, target) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const current = parseInt(el.textContent) || 0;
+  const duration = 600;
+  const start = performance.now();
+  function step(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(current + (target - current) * eased);
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+async function vmAction(action, vmId, vmName) {
+  const msgs = {
+    start: `Start VM "${vmName}"?`,
+    stop: `Stop VM "${vmName}"? Running processes will be interrupted.`,
+    restart: `Restart VM "${vmName}"? The VM will be rebooted.`
+  };
+  
+  const confirmed = await confirmAction(
+    msgs[action] || `${action} "${vmName}"?`,
+    action.charAt(0).toUpperCase() + action.slice(1) + ' Virtual Machine'
+  );
+  if (!confirmed) return;
+  
+  try {
+    showToast(`${action.charAt(0).toUpperCase() + action.slice(1)}ing VM...`, 'info');
+    const res = await fetch(`/api/vms/${vmId}/${action}`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(`VM ${action}ed successfully`, 'success');
+      setTimeout(loadVMs, 1000);
+    } else {
+      showToast(`Failed: ${data.error || 'Unknown error'}`, 'error');
+    }
+  } catch(e) {
+    showToast('Action failed: ' + e.message, 'error');
+  }
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer') || createToastContainer();
+  const iconMap = { success: 'i-check', error: 'i-x', warning: 'i-alert', info: 'i-info' };
+  
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <span class="toast-icon"><svg class="icon" style="width:18px;height:18px"><use href="#${iconMap[type] || 'i-info'}"/></svg></span>
+    <span class="toast-message">${escHtml(msg)}</span>
+    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+  `;
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.classList.add('removing');
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
+function createToastContainer() {
+  const container = document.createElement('div');
+  container.id = 'toastContainer';
+  container.className = 'toast-container';
+  document.body.appendChild(container);
+  return container;
+}
+
+function confirmAction(msg, title) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);';
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = 'background:var(--bg-card);border:1px solid var(--border-card);border-radius:14px;width:100%;max-width:450px;box-shadow:0 20px 60px rgba(0,0,0,0.6);animation:slideInModal 0.3s ease-out;overflow:hidden;';
+    
+    modal.innerHTML 

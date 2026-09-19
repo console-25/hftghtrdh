@@ -1,0 +1,246 @@
+" height="12"><use href="#i-info"/></svg> Details</a>
+        <a href="/admin/vm/${vm.vm_id}/console" class="btn btn-ghost btn-sm"><svg width="12" height="12"><use href="#i-terminal"/></svg> Console</a>
+      </div>
+    </div>
+  `;
+}
+
+function renderListView(vms, container) {
+  container.innerHTML = `
+    <div class="card">
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>VM</th>
+              <th>Status</th>
+              <th>Resources</th>
+              <th>Disk</th>
+              <th>Network</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${vms.map(vm => {
+              const icon = vm.template_icon;
+              const displayIcon = (icon && icon.startsWith('http')) ? icon : 'https://i.imgur.com/wu0Ob6B.png';
+              const status = vm.status || 'stopped';
+              return `
+              <tr>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <img src="${displayIcon}" style="width: 32px; height: 32px; object-fit: contain; border-radius: 8px; padding: 4px; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.15);" onerror="this.src='https://i.imgur.com/wu0Ob6B.png'">
+                    <div>
+                      <a href="/admin/vm/${vm.vm_id}" class="strong" style="text-decoration: none; color: var(--text-primary); font-weight:600;">${escHtml(vm.vm_name)}</a>
+                      <div style="font-size: 11px; color: var(--text-muted); margin-top:2px;">
+                        <span style="background:rgba(99,102,241,0.1);color:#6366F1;padding:1px 7px;border-radius:5px;font-family:monospace;font-weight:600;">#${vm.vm_id}</span>
+                        <span style="margin-left:6px;">${escHtml(vm.template_name || vm.os_type || 'Custom')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge ${getStatusClass(status)}">
+                    <span class="dot"></span>${status}
+                  </span>
+                </td>
+                <td>
+                  <div style="display: flex; gap: 12px; font-size: 12px;">
+                    <div style="display: flex; align-items: center; gap: 5px;" title="vCPUs">
+                      <span style="color:#EC4899;display:inline-flex;"><svg width="12" height="12"><use href="#i-cpu"/></svg></span>
+                      <strong style="color: var(--text-primary);">${vm.cpus || '—'}</strong>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px;" title="Memory">
+                      <span style="color:#10B981;display:inline-flex;"><svg width="12" height="12"><use href="#i-mem"/></svg></span>
+                      <strong style="color: var(--text-primary);">${formatMem(vm.memory)}</strong>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:6px;font-size:12px;">
+                    <span style="color:#06B6D4;display:inline-flex;"><svg width="12" height="12"><use href="#i-disk"/></svg></span>
+                    <strong style="color: var(--text-primary);">${vm.disk_size || '—'}</strong>
+                  </div>
+                </td>
+                <td style="font-size: 12px;">
+                  <div style="color:var(--text-primary);font-weight:500;">${vm.ipv4_address || (vm.network_type === 'dhcp' ? 'DHCP' : '—')}</div>
+                  <div style="color: var(--text-muted); font-family:monospace; font-size:10px; margin-top:2px;">SSH: ${vm.ssh_port || vm.ssh_port_static || '22'}</div>
+                </td>
+                <td>
+                  <div style="display: flex; gap: 6px; align-items: center; justify-content:flex-end; flex-wrap: wrap;">
+                    ${status === 'stopped'
+                      ? `<button class="btn btn-success btn-sm btn-icon" onclick="vmAction('start', ${vm.vm_id}, '${escHtml(vm.vm_name)}')" title="Start"><svg width="13" height="13"><use href="#i-play"/></svg></button>`
+                      : `<button class="btn btn-warning btn-sm btn-icon" onclick="vmAction('stop', ${vm.vm_id}, '${escHtml(vm.vm_name)}')" title="Stop"><svg width="13" height="13"><use href="#i-stop"/></svg></button>`
+                    }
+                    <button class="btn btn-ghost btn-sm btn-icon" onclick="vmAction('restart', ${vm.vm_id}, '${escHtml(vm.vm_name)}')" title="Restart"><svg width="13" height="13"><use href="#i-restart"/></svg></button>
+                    <a href="/admin/vm/${vm.vm_id}/edit" class="btn btn-primary btn-sm btn-icon" title="Edit"><svg width="13" height="13"><use href="#i-edit"/></svg></a>
+                    <a href="/admin/vm/${vm.vm_id}" class="btn btn-outline btn-sm btn-icon" title="Details"><svg width="13" height="13"><use href="#i-info"/></svg></a>
+                    <a href="/admin/vm/${vm.vm_id}/console" class="btn btn-ghost btn-sm btn-icon" title="Console"><svg width="13" height="13"><use href="#i-terminal"/></svg></a>
+                    <button class="btn btn-danger btn-sm btn-icon" onclick="confirmDelete(${vm.vm_id}, '${escHtml(vm.vm_name)}')" title="Delete"><svg width="13" height="13"><use href="#i-trash"/></svg></button>
+                  </div>
+                </td>
+              </tr>
+            `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// VM Actions
+async function vmAction(action, vmId, vmName) {
+  const msgs = {
+    start: `Start VM "${vmName}"?`,
+    stop: `Stop VM "${vmName}"? Running processes will be interrupted.`,
+    restart: `Restart VM "${vmName}"? The VM will be rebooted.`
+  };
+  const confirmed = await confirmAction(
+    msgs[action] || `${action} "${vmName}"?`,
+    action.charAt(0).toUpperCase() + action.slice(1) + ' Virtual Machine'
+  );
+  if (!confirmed) return;
+  
+  try {
+    showToast(`${action.charAt(0).toUpperCase() + action.slice(1)}ing VM...`, 'info');
+    const res = await fetch(`/api/vms/${vmId}/${action}`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(`VM ${action}ed successfully`, 'success');
+      setTimeout(loadVMs, 1000);
+    } else {
+      showToast(`Failed: ${data.error || 'Unknown error'}`, 'error');
+    }
+  } catch(e) {
+    showToast('Action failed: ' + e.message, 'error');
+  }
+}
+
+async function confirmDelete(vmId, vmName) {
+  const confirmed = await confirmAction(
+    `This will permanently delete VM "${vmName}" (ID: ${vmId}) and all its files. This action cannot be undone!`,
+    'Delete Virtual Machine',
+    'danger'
+  );
+  if (!confirmed) return;
+  
+  try {
+    showToast('Deleting VM...', 'warning');
+    const res = await fetch(`/api/vms/${vmId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast('VM deleted successfully', 'success');
+      loadVMs();
+    } else {
+      showToast('Delete failed: ' + (data.error || 'Unknown error'), 'error');
+    }
+  } catch(e) {
+    showToast('Delete failed: ' + e.message, 'error');
+  }
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// Toast system with SVG icons
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer') || createToastContainer();
+  const iconMap = { success: 'i-check', error: 'i-x', warning: 'i-alert', info: 'i-info' };
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <span class="toast-icon"><svg width="18" height="18"><use href="#${iconMap[type] || 'i-info'}"/></svg></span>
+    <span class="toast-message">${escHtml(msg)}</span>
+    <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Close">×</button>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('removing');
+    setTimeout(() => toast.remove(), 300);
+  }, 4500);
+}
+
+function createToastContainer() {
+  const container = document.createElement('div');
+  container.id = 'toastContainer';
+  container.className = 'toast-container';
+  document.body.appendChild(container);
+  return container;
+}
+
+// Confirmation dialog with SVG icons
+function confirmAction(msg, title, variant = 'warning') {
+  return new Promise((resolve) => {
+    const isDanger = variant === 'danger';
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);';
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = 'background:var(--bg-card);border:1px solid var(--border-card);border-radius:var(--radius-lg);width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.6);animation:slideInModal 0.35s ease-out;overflow:hidden;';
+    
+    const iconColor = isDanger ? '#EF4444' : '#F59E0B';
+    const iconBg = isDanger ? 'rgba(239,68,68,0.12)' : 'rgba(245,158,11,0.12)';
+    const btnGrad = isDanger ? 'linear-gradient(135deg,#ef4444,#dc2626)' : 'linear-gradient(135deg,#f59e0b,#f97316)';
+    const btnShadow = isDanger ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)';
+    
+    modal.innerHTML = `
+      <div style="padding:20px 22px 14px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;background:${iconBg};border-radius:10px;display:flex;align-items:center;justify-content:center;color:${iconColor};">
+          <svg width="22" height="22"><use href="#i-alert"/></svg>
+        </div>
+        <h2 style="margin:0;color:var(--text-primary);font-size:16px;font-weight:700;">${escHtml(title)}</h2>
+      </div>
+      <div style="padding:20px 22px;">
+        <p style="margin:0;color:var(--text-secondary);font-size:14px;line-height:1.5;">${escHtml(msg)}</p>
+      </div>
+      <div style="padding:14px 22px 18px;border-top:1px solid var(--border-subtle);display:flex;gap:10px;justify-content:flex-end;">
+        <button id="cancelBtn" style="padding:9px 18px;border-radius:var(--radius-sm);cursor:pointer;font-weight:600;font-size:13px;background:transparent;color:var(--text-secondary);border:1px solid var(--border-color);">Cancel</button>
+        <button id="confirmBtn" style="padding:9px 18px;border-radius:var(--radius-sm);cursor:pointer;border:none;font-weight:600;font-size:13px;background:${btnGrad};color:white;box-shadow:0 4px 12px ${btnShadow};">Confirm</button>
+      </div>
+    `;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    const cleanup = () => overlay.remove();
+    modal.querySelector('#confirmBtn').onclick = () => { cleanup(); resolve(true); };
+    modal.querySelector('#cancelBtn').onclick = () => { cleanup(); resolve(false); };
+    overlay.onclick = (e) => { if (e.target === overlay) { cleanup(); resolve(false); } };
+    document.addEventListener('keydown', function esc(e) {
+      if (e.key === 'Escape') { cleanup(); resolve(false); document.removeEventListener('keydown', esc); }
+    });
+  });
+}
+
+// Init
+setView('list');
+loadVMs();
+setInterval(loadVMs, 30000);
+</script>
+</body>
+</html>{"mode":33188,"size":32699,"isFileValue":true,"isDirectoryValue":false,"isSocketValue":false,"isSymbolicLinkValue":false}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0a0f">
+    <title><%= title || 'Activate License - HKVM Panel' %></title>
+    <link rel="icon" href="<%= siteLogo %>" type="image/png">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+<!-- ============ SVG ICON SPRITE ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-5.9 13.9a6 6 0 1 1-8.485-8.485 6 6 0 0 1 8.485 8.485z"/><circle cx="11" cy="13" r="1"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36M20.49 15a9 9 0 0 1-14.85 3.36"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+    <symbol id="i-package" viewBox="0 0 24 24" fill="none" stroke

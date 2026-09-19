@@ -1,0 +1,552 @@
+"terminalContainer"></div>
+  </div>
+</div>
+
+<!-- Connection Modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <i class="fas fa-lock" style="font-size: 20px; color: #6366f1;"></i>
+      <h2 class="modal-title">SSH Connection</h2>
+    </div>
+    
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Host / IP Address</label>
+        <input type="text" class="form-input" id="inputHost" placeholder="192.168.1.100 or localhost">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Port</label>
+        <input type="number" class="form-input" id="inputPort" value="22" min="1" max="65535">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" class="form-input" id="inputUsername" placeholder="root or ubuntu">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-input" id="inputPassword" placeholder="••••••••">
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-modal secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-modal primary" onclick="connect()" id="connectModalBtn">
+        <i class="fas fa-play"></i>
+        Connect
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- xterm.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.7.0/lib/xterm-addon-web-links.min.js"></script>
+
+<script>
+// ============= GLOBAL STATE =============
+const vmId = <%= vmId %>;
+const userId = <%= userId %>;
+let ws = null;
+let isConnected = false;
+let term = null;
+const fitAddon = new FitAddon.FitAddon();
+
+// ============= TERMINAL INITIALIZATION =============
+function initTerminal() {
+  const container = document.getElementById('terminalContainer');
+  
+  term = new Terminal({
+    cols: 120,
+    rows: 30,
+    theme: {
+      background: '#0a0a0f',
+      foreground: '#d1d5db',
+      cursor: '#6366f1',
+      cursorAccent: '#0a0a0f',
+      black: '#1e1e1e',
+      red: '#ef4444',
+      green: '#10b981',
+      yellow: '#f59e0b',
+      blue: '#3b82f6',
+      magenta: '#ec4899',
+      cyan: '#06b6d4',
+      white: '#d1d5db',
+      brightBlack: '#6b7280',
+      brightRed: '#ef4444',
+      brightGreen: '#10b981',
+      brightYellow: '#fbbf24',
+      brightBlue: '#60a5fa',
+      brightMagenta: '#f472b6',
+      brightCyan: '#22d3ee',
+      brightWhite: '#f1f5f9'
+    },
+    fontSize: 13,
+    fontFamily: "'Courier New', 'Courier', monospace",
+    lineHeight: 1.2,
+    letterSpacing: 0,
+    fontWeight: 400,
+    cursorStyle: 'block',
+    cursorBlink: true,
+    scrollback: 5000
+  });
+  
+  // Load add-ons
+  term.loadAddon(fitAddon);
+  term.loadAddon(new WebLinksAddon.WebLinksAddon());
+  
+  // Open terminal in container
+  term.open(container);
+  
+  // Fit terminal to container size
+  fitAddon.fit();
+  
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    try {
+      fitAddon.fit();
+    } catch (e) {
+      console.error('[Terminal] Resize error:', e);
+    }
+  });
+  
+  // Handle terminal input
+  term.onData(data => {
+    if (ws && ws.readyState === WebSocket.OPEN && isConnected) {
+      ws.send(JSON.stringify({
+        type: 'input',
+        data: data
+      }));
+    }
+  });
+  
+  console.log('[Terminal] xterm.js initialized');
+}
+
+// ============= CONNECTION FUNCTIONS =============
+function setConnected(state) {
+  isConnected = state;
+  const badge = document.getElementById('statusBadge');
+  const connectBtn = document.getElementById('connectBtn');
+  const disconnectBtn = document.getElementById('disconnectBtn');
+  
+  if (state) {
+    badge.classList.add('connected');
+    document.getElementById('statusText').textContent = 'Connected';
+    connectBtn.style.display = 'none';
+    disconnectBtn.style.display = 'inline-flex';
+    if (term) term.focus();
+  } else {
+    badge.classList.remove('connected');
+    document.getElementById('statusText').textContent = 'Disconnected';
+    connectBtn.style.display = 'inline-flex';
+    disconnectBtn.style.display = 'none';
+  }
+}
+
+// ============= MODAL FUNCTIONS =============
+function openModal() {
+  document.getElementById('modalBackdrop').classList.add('show');
+  document.getElementById('inputHost').focus();
+}
+
+function closeModal() {
+  document.getElementById('modalBackdrop').classList.remove('show');
+}
+
+// ============= SSH CONNECTION =============
+function connect() {
+  const host = document.getElementById('inputHost').value.trim();
+  const port = document.getElementById('inputPort').value.trim();
+  const username = document.getElementById('inputUsername').value.trim();
+  const password = document.getElementById('inputPassword').value;
+  
+  if (!host || !port || !username) {
+    alert('Please fill in Host, Port, and Username');
+    return;
+  }
+  
+  // Disable connect button during connection
+  const connectBtn = document.getElementById('connectModalBtn');
+  connectBtn.disabled = true;
+  const originalHTML = connectBtn.innerHTML;
+  connectBtn.innerHTML = '<span class="spinner"></span>Connecting...';
+  
+  closeModal();
+  
+  if (term) {
+    term.clear();
+    term.write('\r\n\u001b[1;36m╔═════════════════════════════════════════════╗\u001b[0m\r\n');
+    term.write('\u001b[1;36m║  🔐 Connecting to SSH Server...            ║\u001b[0m\r\n');
+    term.write('\u001b[1;36m╚═════════════════════════════════════════════╝\u001b[0m\r\n');
+    term.write(`\r\n\u001b[33m[*]\u001b[0m Connecting to ${username}@${host}:${port}...\r\n`);
+  }
+  
+  // Determine WebSocket protocol
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = proto + '//' + window.location.host + '/ssh-terminal';
+  
+  try {
+    ws = new WebSocket(wsUrl);
+    ws.binaryType = 'arraybuffer';
+    console.log('[SSH] Connecting to WebSocket:', wsUrl);
+  } catch (e) {
+    console.error('[SSH] WebSocket creation failed:', e);
+    if (term) {
+      term.write('\r\n\u001b[1;31m✗ Error: Failed to create WebSocket connection\u001b[0m\r\n');
+    }
+    connectBtn.disabled = false;
+    connectBtn.innerHTML = originalHTML;
+    return;
+  }
+  
+  ws.onopen = function() {
+    console.log('[SSH] WebSocket opened');
+    
+    // Send SSH connection request
+    const message = {
+      type: 'connect',
+      vmId: vmId,
+      host: host,
+      port: parseInt(port),
+      username: username,
+      password: password
+    };
+    
+    console.log('[SSH] Sending connect message');
+    ws.send(JSON.stringify(message));
+  };
+  
+  ws.onmessage = function(event) {
+    try {
+      // Check if it's binary data (SSH output) or JSON (control messages)
+      if (event.data instanceof ArrayBuffer) {
+        // Binary data from SSH stream
+        const uint8Array = new Uint8Array(event.data);
+        const text = String.fromCharCode.apply(null, uint8Array);
+        if (term) {
+          term.write(text);
+        }
+      } else {
+        // JSON control messages
+        const message = JSON.parse(event.data);
+        
+        if (message.type === 'connected') {
+          console.log('[SSH] SSH connection established');
+          setConnected(true);
+          if (term) {
+            term.write('\r\n\u001b[1;32m✓ SSH Connection Established\u001b[0m\r\n\r\n');
+          }
+          connectBtn.disabled = false;
+          connectBtn.innerHTML = originalHTML;
+        } else if (message.type === 'closed') {
+          console.log('[SSH] SSH connection closed');
+          if (term) {
+            term.write('\r\n\r\n\u001b[1;31m⛔ SSH Connection Closed\u001b[0m\r\n');
+          }
+          setConnected(false);
+        } else if (message.type === 'error') {
+          console.error('[SSH] Error:', message.message);
+          if (term) {
+            term.write('\r\n\u001b[1;31m✗ Error: ' + message.message + '\u001b[0m\r\n');
+          }
+          setConnected(false);
+          connectBtn.disabled = false;
+          connectBtn.innerHTML = originalHTML;
+        }
+      }
+    } catch (e) {
+      console.error('[SSH] Message parse error:', e);
+      // If it's not valid JSON, it's probably binary SSH data
+      if (event.data instanceof Blob) {
+        event.data.arrayBuffer().then(buffer => {
+          const uint8Array = new Uint8Array(buffer);
+          const text = String.fromCharCode.apply(null, uint8Array);
+          if (term) {
+            term.write(text);
+          }
+        });
+      }
+    }
+  };
+  
+  ws.onerror = function(error) {
+    console.error('[SSH] WebSocket error:', error);
+    if (term) {
+      term.write('\r\n\u001b[1;31m✗ WebSocket Error: Connection failed\u001b[0m\r\n');
+    }
+    setConnected(false);
+    connectBtn.disabled = false;
+    connectBtn.innerHTML = originalHTML;
+  };
+  
+  ws.onclose = function() {
+    console.log('[SSH] WebSocket closed');
+    if (isConnected) {
+      if (term) {
+        term.write('\r\n\r\n\u001b[1;31m⛔ SSH Connection Closed\u001b[0m\r\n');
+      }
+    }
+    setConnected(false);
+    connectBtn.disabled = false;
+    connectBtn.innerHTML = originalHTML;
+  };
+}
+
+function disconnect() {
+  if (ws) {
+    console.log('[SSH] Closing WebSocket');
+    ws.close();
+  }
+  setConnected(false);
+}
+
+// ============= MODAL HELPERS =============
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeModal();
+  }
+});
+
+// ============= INITIALIZATION =============
+async function initializePage() {
+  console.log('[SSH] Initializing admin page with vmId=' + vmId);
+  
+  try {
+    // Fetch VM details
+    const response = await fetch('/api/vms/' + vmId);
+    
+    if (!response.ok) {
+      console.error('[SSH] Failed to fetch VM:', response.status);
+      if (term) {
+        term.write('\u001b[1;31m✗ Error: Could not load VM details\u001b[0m\r\n');
+      }
+      return;
+    }
+    
+    const vm = await response.json();
+    console.log('[SSH] VM loaded:', vm.vm_name);
+    
+    // Auto-populate form with VM details (admin can access any VM)
+    setTimeout(() => {
+      if (vm.ipv4_address) document.getElementById('inputHost').value = vm.ipv4_address;
+      if (vm.ssh_port) document.getElementById('inputPort').value = vm.ssh_port;
+      else if (vm.ssh_port_static) document.getElementById('inputPort').value = vm.ssh_port_static;
+      else document.getElementById('inputPort').value = 2222;
+      if (vm.username) document.getElementById('inputUsername').value = vm.username;
+      if (vm.password) document.getElementById('inputPassword').value = vm.password;
+      
+      console.log('[SSH] Form populated, opening modal');
+      openModal();
+    }, 300);
+    
+  } catch (e) {
+    console.error('[SSH] Initialization error:', e);
+    if (term) {
+      term.write('\u001b[1;31m✗ Error: ' + e.message + '\u001b[0m\r\n');
+    }
+  }
+}
+
+// ============= PAGE LOAD =============
+window.addEventListener('load', function() {
+  // Initialize terminal first
+  initTerminal();
+  
+  // Show welcome message
+  term.write('\r\n\u001b[1;36m╔════════════════════════════════════════════════════════════╗\u001b[0m\r\n');
+  term.write('\u001b[1;36m║  🔐 HKVM v1 SSH Terminal (Admin) - Remote Access          ║\u001b[0m\r\n');
+  term.write('\u001b[1;36m║  Powered by xterm.js | Professional Terminal Emulation     ║\u001b[0m\r\n');
+  term.write('\u001b[1;36m╚════════════════════════════════════════════════════════════╝\u001b[0m\r\n');
+  term.write('\r\n\u001b[33m[*]\u001b[0m Click the \u001b[1mConnect\u001b[0m button or use \u001b[1;33mCtrl+O\u001b[0m to establish SSH connection\r\n');
+  term.write('\u001b[32m[✓]\u001b[0m After connecting, type commands directly in the terminal\r\n');
+  term.write('\u001b[34m[!]\u001b[0m Keyboard shortcuts:\r\n');
+  term.write('    • \u001b[1mCtrl+C\u001b[0m - Interrupt/stop running command\r\n');
+  term.write('    • \u001b[1mCtrl+D\u001b[0m - Close connection\r\n');
+  term.write('    • \u001b[1mCtrl+L\u001b[0m - Clear terminal screen\r\n');
+  term.write('\r\n\u001b[36m→ Ready for connection\u001b[0m\r\n\r\n');
+  
+  // Initialize page
+  initializePage();
+});
+
+// Add keyboard shortcut for quick connect (Ctrl+O)
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && (e.key === 'o' || e.key === 'O')) {
+    e.preventDefault();
+    if (!isConnected) {
+      openModal();
+    }
+  }
+});
+</script>
+
+</body>
+</html>
+
+{"mode":33188,"size":21562,"isFileValue":true,"isDirectoryValue":false,"isSocketValue":false,"isSymbolicLinkValue":false}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0f">
+  <title><%= title || 'Virtual Machines - HKVM Panel' %></title>
+  <link rel="icon" href="<%= siteLogo %>" type="image/png">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+<!-- ============ SVG ICON SPRITE ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/>
+      <line x1="6" y1="6.5" x2="6.01" y2="6.5"/><line x1="6" y1="17.5" x2="6.01" y2="17.5"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+    <symbol id="i-restart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/>
+    </symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6"/>
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+    </symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+    </symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+    </symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/>
+      <line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/>
+      <line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/>
+      <line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/>
+      <line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>
+    </symbol>
+    <symbol id="i-mem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>
+    </symbol>
+    <symbol id="i-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+    </symbol>
+    <symbol id="i-network" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+    </symbol>
+    <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+      <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </symbol>
+    <symbol id="i-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="admin-wrapper">
+  <%- include('../partials/admin/sidebar') %>
+
+  <div class="admin-main">
+    <%- include('../partials/admin/header') %>
+
+    <div class="admin-content">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-title-section">
+          <h1 class="page-title">
+            <span class="title-icon"><svg width="22" height="22"><use href="#i-server"/></svg></span>
+            Virtual Machines
+          </h1>
+          <p class="page-subtitle">
+            Manage and monitor all virtual machines
+            <span class="live-indicator"><span class="live-dot"></span></span>
+            <span id="lastUpdate" style="opacity:0.7"></span>
+          </p>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm" onclick="loadVMs()" id="refreshBtn">
+            <svg width="13" height="13"><use href="#i-refresh"/></svg>
+            Refresh
+          </button>
+          <a href="/admin/vm-create" class="btn btn-primary btn-sm">
+            <svg width="13" height="13"><use href="#i-plus"/></svg>
+            New VM
+          </a>
+        </div>
+      </div>
+
+      <!-- VM Stats Row (clickable to filter) -->
+      <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;">
+        <div class="stat-card stat-clickable" style="--card-gradient: var(--gradient-primary); padding: 14px; cursor:pointer;" data-filter="" onclick="quickFilter('')">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div class="stat-value" style="font-size: 22px;" id="totalCount">—</div>
+              <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-icon-svg" style="color: #6366F1;"><svg width="24" height="24"><use href="#i-server"/></svg></div>
+          </div>
+        </div>
+        <div class="stat-card stat-clickable" style="--card-gradient: var(--gradient-green); padding: 14px; cursor:pointer;" data-filter="running" onclick="quickFilter('running')">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div class="stat-value" style="font-size: 22px; color: var(--accent-green);" id="runningCount">—</div>
+              <div class="stat-label">Running</div>
+            </div>
+            <div class="stat-icon-svg" style="color: #10B981;"><svg width="24" height="24"><use href="#i-play"/></svg></div>
+          </div>
+        </div>
+        <div class="stat-card stat-clickable" style="--card-gradient: linear-gradient(135deg, #64748b, #475569); padding: 14px; cursor:pointer;" data-filter="stopped" onclick="quickFilter('stopped')">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div class="stat-value" style="font-size: 22px;" id="stoppedCount">—</div>
+              <div class="stat-label">Stopped</div>
+            </div>
+            <div class="stat-icon-svg" style="color: #9CA3AF;"><svg width="24" height="24"><use href="#i-power"/></svg></div>
+          </div>
+        </div>
+        <div class="stat-card" style="--card-gradient: var(--gradient-blue); padding: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div class="stat-value" style="font-size: 22px;" id="totalMemory">—</div>
+              <div class="stat-label">Total RAM</div>
+            </div>
+            <div class="stat-icon-svg" style="color: #10B981;"><svg width="24" height="24"><use href="#i-mem"/></svg></div>
+          </div>
+        </div>
+  

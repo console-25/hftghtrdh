@@ -1,0 +1,278 @@
+.btn-action:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+    }
+    .btn-action.start {
+      background: linear-gradient(135deg, #10B981, #059669);
+      border-color: transparent;
+      color: white;
+    }
+    .btn-action.start:hover {
+      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+      color: white;
+    }
+    .btn-action.stop {
+      background: linear-gradient(135deg, #EF4444, #DC2626);
+      border-color: transparent;
+      color: white;
+    }
+    .btn-action.stop:hover {
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+      color: white;
+    }
+    .btn-action.primary {
+      background: linear-gradient(135deg, #6366F1, #8B5CF6);
+      border-color: transparent;
+      color: white;
+    }
+    .btn-action.primary:hover {
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+      color: white;
+    }
+
+    /* ============ LIST VIEW TABLE ============ */
+    .vm-table-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .vm-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .vm-table thead {
+      background: rgba(99, 102, 241, 0.04);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .vm-table th {
+      padding: 14px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .vm-table td {
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+    .vm-table tbody tr {
+      transition: background 0.15s;
+    }
+    .vm-table tbody tr:hover {
+      background: rgba(99, 102, 241, 0.04);
+    }
+    .vm-table tbody tr:last-child td { border-bottom: none; }
+    .vm-name-link {
+      color: var(--text-primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .vm-name-link:hover { color: #6366F1; }
+    .btn-icon-only {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 7px;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 13px;
+    }
+    .btn-icon-only:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent-primary);
+    }
+    .btn-icon-only.start { background: rgba(16, 185, 129, 0.1); color: #10B981; border-color: rgba(16, 185, 129, 0.3); }
+    .btn-icon-only.stop { background: rgba(239, 68, 68, 0.1); color: #EF4444; border-color: rgba(239, 68, 68, 0.3); }
+    .btn-icon-only.restart { background: rgba(139, 92, 246, 0.1); color: #8B5CF6; border-color: rgba(139, 92, 246, 0.3); }
+
+    /* ============ EMPTY / ERROR STATES ============ */
+    .empty-enhanced {
+      background: var(--bg-card);
+      border: 1px dashed var(--border-color);
+      border-radius: 16px;
+      padding: 60px 24px;
+      text-align: center;
+    }
+    .empty-icon-wrap {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.05));
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6366F1;
+      font-size: 36px;
+    }
+    .empty-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
+    .empty-desc { color: var(--text-muted); font-size: 13px; max-width: 400px; margin: 0 auto 20px; }
+
+    /* ============ LOADING SKELETON ============ */
+    .skeleton-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 14px;
+      height: 280px;
+      position: relative;
+      overflow: hidden;
+    }
+    .skeleton-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer { to { transform: translateX(100%); } }
+
+    /* ============ TOASTS ============ */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 380px;
+    }
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-left: 3px solid #6366F1;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      animation: slideInToast 0.3s ease-out;
+      min-width: 300px;
+    }
+    .toast.removing { animation: slideOutToast 0.3s ease-out forwards; }
+    .toast-success { border-left-color: #10B981; }
+    .toast-error { border-left-color: #EF4444; }
+    .toast-warning { border-left-color: #F59E0B; }
+    .toast-info { border-left-color: #6366F1; }
+    .toast-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .toast-success .toast-icon { color: #10B981; }
+    .toast-error .toast-icon { color: #EF4444; }
+    .toast-warning .toast-icon { color: #F59E0B; }
+    .toast-info .toast-icon { color: #6366F1; }
+    .toast-message { flex: 1; color: var(--text-primary); font-size: 13px; font-weight: 500; }
+    .toast-close {
+      background: transparent; border: none; color: var(--text-muted);
+      cursor: pointer; font-size: 18px; padding: 0; width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .toast-close:hover { color: var(--text-primary); }
+    @keyframes slideInToast {
+      from { transform: translateX(120%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOutToast {
+      to { transform: translateX(120%); opacity: 0; }
+    }
+    @keyframes slideInModal {
+      from { transform: scale(0.9) translateY(-20px); opacity: 0; }
+      to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 900px) {
+      .stats-enhanced { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .vm-actions-enhanced { grid-template-columns: 1fr 1fr; }
+      .vm-specs { grid-template-columns: 1fr; }
+      .page-header-enhanced { padding: 0 0 10px 0; }
+      .page-title-enhanced { font-size: 20px; }
+      .view-switcher { margin-left: 0; width: 100%; justify-content: center; }
+      .filter-select { width: 100%; }
+      .search-wrap { max-width: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- SVG ICON DEFINITIONS -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/>
+      <line x1="6" y1="6.5" x2="6.01" y2="6.5"/><line x1="6" y1="17.5" x2="6.01" y2="17.5"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+    </symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+    <symbol id="i-restart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/>
+    </symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+    </symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+    </symbol>
+    <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+    </symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/>
+      <line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/>
+      <line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/>
+      <line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/>
+      <line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>
+    </symbol>
+    <symbol id="i-mem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>
+    </symbol>
+    <symbol id="i-disk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+    </symbol>
+    <symbol id="i-network" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+    </symbol>
+    <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8"

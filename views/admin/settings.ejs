@@ -1,0 +1,570 @@
+lass="template-card-inner">
+          <div class="template-icon">${iconHtml}</div>
+          <div class="template-name">${tmpl.name}</div>
+          <div class="template-type">${tmpl.type}</div>
+        </div>
+      </label>`;
+    }).join('');
+    
+    const first = Object.keys(osTemplates)[0];
+    if (first) document.querySelector(`input[value="${first}"]`)?.click();
+  } catch(e) { console.log('Templates load error:', e); }
+}
+
+function selectTemplate(key) {
+  const tmpl = osTemplates[key];
+  if (!tmpl) return;
+  
+  document.getElementById('os_template').value = key;
+  document.getElementById('iso_file').value = '';
+  
+  const details = document.getElementById('templateDetails');
+  if (details) {
+    details.innerHTML = `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div style="font-size: 12px; color: var(--text-muted);">Type:</div><div style="font-size: 12px; color: var(--text-primary); font-weight:500;">${tmpl.type}</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Default RAM:</div><div style="font-size: 12px; color: var(--text-primary); font-weight:500;">${tmpl.memory}MB</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Default CPUs:</div><div style="font-size: 12px; color: var(--text-primary); font-weight:500;">${tmpl.cpus} vCPUs</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Disk:</div><div style="font-size: 12px; color: var(--text-primary); font-weight:500;">${tmpl.disk_size}</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Username:</div><div style="font-size: 12px; color: var(--accent-primary); font-weight:600;">${tmpl.username}</div>
+      </div>`;
+  }
+  
+  if (document.getElementById('custom_memory').value === '2048' || !document.getElementById('custom_memory').value) {
+    document.getElementById('custom_memory').value = tmpl.memory;
+  }
+  updatePreview();
+}
+
+function handleIsoSelect() {
+  if (document.getElementById('iso_file').value) {
+    document.getElementById('os_template').value = '';
+    document.querySelectorAll('input[name="_template"]').forEach(r => r.checked = false);
+  }
+  updatePreview();
+}
+
+async function loadCPUModels() {
+  try {
+    const res = await fetch('/api/cpu-models');
+    if (!res.ok) return;
+    const models = await res.json();
+    const sel = document.getElementById('cpu_model');
+    if (!sel) return;
+    sel.innerHTML = Object.entries(models).map(([key, m]) =>
+      `<option value="${key}" ${key === 'host' ? 'selected' : ''}>${m.name} — ${m.description}</option>`
+    ).join('');
+  } catch(e) {}
+}
+
+async function loadNetworkTypes() {
+  try {
+    const res = await fetch('/api/network-types');
+    if (!res.ok) return;
+    const types = await res.json();
+    const grid = document.getElementById('networkTypeGrid');
+    if (!grid) return;
+    
+    grid.innerHTML = Object.entries(types).map(([key, t], i) => `
+      <div>
+        <input type="radio" name="_network_type" id="net_${key}" value="${key}" ${i === 0 ? 'checked' : ''} onchange="selectNetwork('${key}')">
+        <label for="net_${key}" class="network-type-inner">
+          <div class="network-type-icon">${t.icon}</div>
+          <div class="network-type-name">${t.name}</div>
+          <div class="network-type-desc">${t.description}</div>
+        </label>
+      </div>`).join('');
+    
+    const firstKey = Object.keys(types)[0];
+    if (firstKey) selectNetwork(firstKey);
+  } catch(e) { console.error('Error loading network types:', e); }
+}
+
+function selectNetwork(key) {
+  document.getElementById('network_type').value = key;
+  const staticCard = document.getElementById('staticIpCard');
+  const ipv6Card = document.getElementById('ipv6Card');
+  if (staticCard) staticCard.style.display = (key === 'static_public' || key === 'static_private' || key === 'dual_stack') ? 'block' : 'none';
+  if (ipv6Card) ipv6Card.style.display = (key === 'dual_stack') ? 'block' : 'none';
+  updatePreview();
+}
+
+async function loadISOList() {
+  try {
+    const res = await fetch('/api/iso-list');
+    if (!res.ok) return;
+    const isos = await res.json();
+    const sel = document.getElementById('iso_file');
+    if (!sel) return;
+    if (isos.length === 0) {
+      sel.innerHTML = '<option value="">— No ISO files found —</option>';
+    } else {
+      sel.innerHTML = '<option value="">— Use OS Template —</option>' +
+        isos.map(iso => `<option value="${iso}">${iso}</option>`).join('');
+    }
+  } catch(e) {}
+}
+
+async function loadUsers() {
+  try {
+    const res = await fetch('/api/users/list');
+    if (!res.ok) return;
+    const users = await res.json();
+    const sel = document.getElementById('owner_id');
+    if (!sel) return;
+    if (users.length === 0) {
+      sel.innerHTML = '<option value="">— No users available —</option>';
+    } else {
+      sel.innerHTML = '<option value="">— Select User —</option>' +
+        users.map(user => `<option value="${user.id}">${user.username} (${user.email || 'N/A'})</option>`).join('');
+    }
+  } catch(e) { console.log('Error loading users:', e); }
+}
+
+function updateTotalCPU() {
+  const s = parseInt(document.getElementById('cpu_sockets')?.value) || 1;
+  const c = parseInt(document.getElementById('cpu_cores')?.value) || 1;
+  const t = parseInt(document.getElementById('cpu_threads')?.value) || 1;
+  const total = s * c * t;
+  const el = document.getElementById('totalCPUDisplay');
+  const hidden = document.getElementById('custom_cpus');
+  if (el) el.textContent = total;
+  if (hidden) hidden.value = total;
+  updatePreview();
+}
+
+function updateDiskSize() {
+  const num = document.getElementById('disk_size_num')?.value || '20';
+  const unit = document.getElementById('disk_size_unit')?.value || 'G';
+  const hidden = document.getElementById('disk_size');
+  if (hidden) hidden.value = num + unit;
+  updatePreview();
+}
+
+function toggleCustomCPUName() {
+  const checkbox = document.getElementById('enable_custom_cpu_name');
+  const section = document.getElementById('custom_cpu_name_section');
+  const input = document.getElementById('custom_cpu_name');
+  
+  if (checkbox.checked) {
+    section.style.display = 'block';
+    input.required = true;
+    setTimeout(() => input.focus(), 100);
+  } else {
+    section.style.display = 'none';
+    input.required = false;
+    input.value = '';
+    document.getElementById('cpuNameValid').style.opacity = '0';
+  }
+  updatePreview();
+}
+
+function validateCustomCPUName() {
+  const input = document.getElementById('custom_cpu_name');
+  const validIcon = document.getElementById('cpuNameValid');
+  const value = input.value.trim();
+  if (value.length > 0) {
+    validIcon.style.opacity = '1';
+    input.style.borderColor = '#10B981';
+  } else {
+    validIcon.style.opacity = '0';
+    input.style.borderColor = '';
+  }
+}
+
+function validateUsername() {
+  const input = document.getElementById('custom_username');
+  const hint = document.getElementById('usernameHint');
+  const value = input.value.trim();
+  
+  if (!value) {
+    hint.innerHTML = `<span style="color:#3B82F6;display:inline-flex;">${svg('i-info', 12)}</span> Leave empty to use template default. Can use "root" for root access.`;
+    hint.style.color = 'var(--text-muted)';
+    input.style.borderColor = '';
+    return;
+  }
+  
+  const isValid = /^[a-zA-Z0-9_-]+$/.test(value) && value.length >= 1 && value.length <= 32;
+  
+  if (value.toLowerCase() === 'root') {
+    hint.innerHTML = `<span style="color:#10B981;display:inline-flex;">${svg('i-check-circle', 12)}</span> Using <strong>root</strong> user - will have full system access.`;
+    hint.style.color = '#10B981';
+    input.style.borderColor = '#10B981';
+  } else if (isValid) {
+    hint.innerHTML = `<span style="color:#10B981;display:inline-flex;">${svg('i-check-circle', 12)}</span> Valid username. User will be created with sudo privileges.`;
+    hint.style.color = '#10B981';
+    input.style.borderColor = '#10B981';
+  } else {
+    hint.innerHTML = `<span style="color:#EF4444;display:inline-flex;">${svg('i-alert', 12)}</span> Invalid username. Use lowercase letters, numbers, hyphens, underscores (1-32 chars).`;
+    hint.style.color = '#EF4444';
+    input.style.borderColor = '#EF4444';
+  }
+}
+
+function toggleCustomManufacturer() {
+  const select = document.getElementById('smbios_manufacturer');
+  const input = document.getElementById('custom_manufacturer');
+  if (select.value === 'custom') {
+    input.style.display = 'block';
+    input.required = true;
+    setTimeout(() => input.focus(), 100);
+  } else {
+    input.style.display = 'none';
+    input.required = false;
+    input.value = '';
+  }
+  updatePreview();
+}
+
+function toggleCustomProduct() {
+  const select = document.getElementById('smbios_product');
+  const input = document.getElementById('custom_product');
+  if (select.value === 'custom') {
+    input.style.display = 'block';
+    input.required = true;
+    setTimeout(() => input.focus(), 100);
+  } else {
+    input.style.display = 'none';
+    input.required = false;
+    input.value = '';
+  }
+  updatePreview();
+}
+
+function setMem(val) {
+  const el = document.getElementById('custom_memory');
+  if (el) el.value = val;
+  updatePreview();
+}
+
+function genMAC() {
+  const mac = 'fa:16:3e:' + [0,1,2].map(() =>
+    Math.floor(Math.random()*256).toString(16).padStart(2,'0')
+  ).join(':');
+  const el = document.getElementById('mac_address');
+  if (el) el.value = mac;
+  showToast('MAC address generated', 'success');
+}
+
+function goToStep(step) {
+  for (let i = 1; i <= totalSteps; i++) {
+    const page = document.getElementById(`step-${i}`);
+    const indicator = document.getElementById(`step-${i}-indicator`);
+    if (page) page.style.display = i === step ? 'block' : 'none';
+    if (indicator) {
+      indicator.classList.remove('active', 'completed');
+      if (i === step) indicator.classList.add('active');
+      else if (i < step) indicator.classList.add('completed');
+    }
+    const conn = document.getElementById(`conn-${i}`);
+    if (conn) conn.classList.toggle('done', i < step);
+  }
+  currentStep = step;
+  document.getElementById('prevBtn').style.display = step === 1 ? 'none' : 'inline-flex';
+  document.getElementById('nextBtn').style.display = step === totalSteps ? 'none' : 'inline-flex';
+  if (step === totalSteps) buildReview();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function nextStep() { if (!validateStep(currentStep)) return; if (currentStep < totalSteps) goToStep(currentStep + 1); }
+function prevStep() { if (currentStep > 1) goToStep(currentStep - 1); }
+
+function validateStep(step) {
+  if (step === 1) {
+    const name = document.getElementById('vm_name')?.value.trim();
+    if (!name) { showToast('VM Name is required', 'warning'); return false; }
+    if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(name)) {
+      showToast('VM Name must be lowercase letters, numbers, and hyphens', 'warning');
+      return false;
+    }
+    const template = document.getElementById('os_template')?.value;
+    const iso = document.getElementById('iso_file')?.value;
+    if (!template && !iso) { showToast('Please select a template or ISO file', 'warning'); return false; }
+    return true;
+  }
+  if (step === 2) {
+    const mem = parseInt(document.getElementById('custom_memory')?.value);
+    if (!mem || mem < 512) { showToast('Minimum 512MB RAM required', 'warning'); return false; }
+    return true;
+  }
+  return true;
+}
+
+function buildReview() {
+  const data = collectFormData();
+  const el = document.getElementById('reviewContent');
+  const nameEl = document.getElementById('reviewVMName');
+  const osEl = document.getElementById('reviewVMOS');
+  
+  if (nameEl) nameEl.textContent = data.vm_name || '—';
+  if (osEl) osEl.textContent = data.os_template ? (osTemplates[data.os_template]?.name || data.os_template) : (data.iso_file || 'Custom');
+  
+  if (el) {
+    el.innerHTML = `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color:#6366F1; margin-bottom: 10px; display:inline-flex; align-items:center; gap:6px;">${svg('i-server', 12)} System</div>
+          ${reviewRow('VM Name', data.vm_name)}
+          ${reviewRow('Hostname', data.hostname)}
+          ${reviewRow('OS Template', osTemplates[data.os_template]?.name || data.iso_file || '—')}
+          ${reviewRow('Username', data.custom_username)}
+          ${reviewRow('Owner', getOwnerName(data.owner_id))}
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color:#EC4899; margin-bottom: 10px; display:inline-flex; align-items:center; gap:6px;">${svg('i-cpu', 12)} Hardware</div>
+          ${reviewRow('vCPUs', data.custom_cpus + ' vCPUs')}
+          ${reviewRow('CPU Layout', data.cpu_sockets + 'S × ' + data.cpu_cores + 'C × ' + data.cpu_threads + 'T')}
+          ${reviewRow('CPU Model', data.cpu_model || 'host')}
+          ${reviewRow('Custom CPU', data.custom_cpu_name ? '<span style="color:#6366F1; font-weight:600;">' + data.custom_cpu_name + '</span>' : 'Default (host)')}
+          ${reviewRow('Memory', data.custom_memory + ' MB')}
+          ${reviewRow('Disk Size', data.disk_size)}
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color:#3B82F6; margin-bottom: 10px; display:inline-flex; align-items:center; gap:6px;">${svg('i-network', 12)} Network</div>
+          ${reviewRow('Network Type', data.network_type)}
+          ${reviewRow('SSH Port', data.ssh_port || 'Auto')}
+          ${reviewRow('HTTP Port', data.http_port || '80')}
+          ${reviewRow('IPv4 Address', data.ipv4_address || 'DHCP')}
+        </div>
+        <div>
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color:#F59E0B; margin-bottom: 10px; display:inline-flex; align-items:center; gap:6px;">${svg('i-tools', 12)} BIOS/Identity</div>
+          ${reviewRow('Manufacturer', data.smbios_manufacturer)}
+          ${reviewRow('Product', data.smbios_product)}
+          ${reviewRow('ACPI', data.enable_acpi ? 'Enabled' : 'Disabled')}
+        </div>
+      </div>`;
+  }
+}
+
+function reviewRow(label, value) {
+  return `
+    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); gap: 8px;">
+      <span style="font-size: 12px; color: var(--text-muted);">${label}</span>
+      <span style="font-size: 12px; color: var(--text-primary); font-weight: 500; text-align: right;">${value || '—'}</span>
+    </div>`;
+}
+
+function getOwnerName(ownerId) {
+  if (!ownerId) return '—';
+  const option = document.getElementById('owner_id')?.querySelector(`option[value="${ownerId}"]`);
+  return option?.textContent || '—';
+}
+
+function collectFormData() {
+  const form = document.getElementById('createVMForm');
+  const fd = new FormData(form);
+  const data = {};
+  fd.forEach((v, k) => { if (!k.startsWith('_')) data[k] = v; });
+  
+  const osTemplateInput = document.getElementById('os_template');
+  if (osTemplateInput && osTemplateInput.value) data.os_template = osTemplateInput.value;
+  
+  data.enable_kvm = 1;
+  data.enable_acpi = document.getElementById('enable_acpi')?.checked ? 1 : 0;
+  
+  const customCPUCheckbox = document.getElementById('enable_custom_cpu_name');
+  const customCPUInput = document.getElementById('custom_cpu_name');
+  if (customCPUCheckbox && customCPUCheckbox.checked && customCPUInput) {
+    const cpuName = customCPUInput.value.trim();
+    if (!cpuName) return null;
+    data.custom_cpu_name = cpuName;
+  } else {
+    data.custom_cpu_name = null;
+  }
+  
+  const manufacturerSelect = document.getElementById('smbios_manufacturer');
+  if (manufacturerSelect && manufacturerSelect.value === 'custom') {
+    const customManuf = document.getElementById('custom_manufacturer')?.value.trim();
+    if (customManuf) data.smbios_manufacturer = customManuf;
+  }
+  
+  const productSelect = document.getElementById('smbios_product');
+  if (productSelect && productSelect.value === 'custom') {
+    const customProd = document.getElementById('custom_product')?.value.trim();
+    if (customProd) data.smbios_product = customProd;
+  }
+  
+  return data;
+}
+
+async function submitCreate() {
+  const btn = document.getElementById('createBtn');
+  const alert = document.getElementById('createAlert');
+  const progress = document.getElementById('createProgress');
+  const progressBar = document.getElementById('createProgressBar');
+  const progressText = document.getElementById('createProgressText');
+  
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner spinner-sm" style="margin-right:8px;"></span> Creating...`;
+  
+  alert.style.display = 'none';
+  progress.style.display = 'block';
+  progressText.textContent = 'Initializing...';
+  progressBar.style.width = '10%';
+  
+  try {
+    const data = collectFormData();
+    if (data === null) throw new Error('Please fill in the custom CPU name field');
+    if (!data.os_template && !data.iso_file) throw new Error('Please select an OS template or ISO file');
+    
+    progressText.textContent = 'Creating VM...';
+    progressBar.style.width = '30%';
+    
+    const res = await fetch('/api/vms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    progressBar.style.width = '70%';
+    progressText.textContent = 'Configuring...';
+    
+    const result = await res.json();
+    
+    if (res.ok && result.success) {
+      progressBar.style.width = '100%';
+      progressBar.classList.add('green');
+      progressText.textContent = 'VM created successfully!';
+      
+      alert.className = 'alert alert-success';
+      alert.innerHTML = `<span class="alert-icon" style="color:#10B981; display:inline-flex;">${svg('i-check-circle', 16)}</span><span>VM "${data.vm_name}" created successfully! (ID: ${result.vm_id})</span>`;
+      alert.style.display = 'flex';
+      
+      btn.innerHTML = `${svg('i-check', 14)} VM Created!`;
+      showToast('VM created successfully!', 'success');
+      
+      setTimeout(() => { window.location.href = `/admin/vm/${result.vm_id}`; }, 1800);
+    } else {
+      throw new Error(result.error || 'VM creation failed');
+    }
+  } catch(e) {
+    progress.style.display = 'none';
+    alert.className = 'alert alert-error';
+    alert.innerHTML = `<span class="alert-icon" style="color:#EF4444; display:inline-flex;">${svg('i-x', 16)}</span><span>${escHtml(e.message)}</span>`;
+    alert.style.display = 'flex';
+    
+    btn.disabled = false;
+    btn.innerHTML = `${svg('i-refresh', 14)} Try Again`;
+    showToast('Failed: ' + e.message, 'error');
+  }
+}
+
+function updatePreview() {
+  const name = document.getElementById('vm_name')?.value || '—';
+  const template = document.getElementById('os_template')?.value;
+  const os = template ? (osTemplates[template]?.name || template) : (document.getElementById('iso_file')?.value || '—');
+  const mem = document.getElementById('custom_memory')?.value || '2048';
+  const cpus = document.getElementById('custom_cpus')?.value || '2';
+  const disk = document.getElementById('disk_size')?.value || '20G';
+  const net = document.getElementById('network_type')?.value || 'dhcp';
+  
+  // Update text preview
+  if (document.getElementById('prev_name')) document.getElementById('prev_name').textContent = name;
+  if (document.getElementById('prev_os')) document.getElementById('prev_os').textContent = os;
+  if (document.getElementById('prev_ram')) document.getElementById('prev_ram').textContent = mem + 'MB';
+  if (document.getElementById('prev_cpu')) document.getElementById('prev_cpu').textContent = cpus + ' vCPUs';
+  if (document.getElementById('prev_disk')) document.getElementById('prev_disk').textContent = disk;
+  if (document.getElementById('prev_net')) document.getElementById('prev_net').textContent = net;
+  
+  // Update OS logo in Ready to Deploy box
+  const osLogoBox = document.getElementById('osLogoBox');
+  if (osLogoBox && template && osTemplates[template]) {
+    const tmpl = osTemplates[template];
+    const iconUrl = tmpl.icon && tmpl.icon.startsWith('http') ? tmpl.icon : 'https://i.imgur.com/wu0Ob6B.png';
+    osLogoBox.innerHTML = `<img src="${iconUrl}" style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px; padding: 4px; background: white;" onerror="this.src='https://i.imgur.com/wu0Ob6B.png';" alt="${tmpl.name}">`;
+  } else if (osLogoBox) {
+    osLogoBox.innerHTML = '<svg width="30" height="30" style="color: #6366F1;"><use href="#i-server"/></svg>';
+  }
+}
+
+function togglePw(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function showToast(msg, type = 'info') {
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+  const iconMap = { success: 'i-check', error: 'i-x', warning: 'i-alert', info: 'i-info' };
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `<span class="toast-icon">${svg(iconMap[type] || 'i-info', 16)}</span><span class="toast-message">${escHtml(msg)}</span><button class="toast-close" onclick="this.parentElement.remove()">×</button>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.classList.add('removing'); setTimeout(() => toast.remove(), 300); }, 4500);
+}
+
+document.getElementById('vm_name')?.addEventListener('input', updatePreview);
+document.getElementById('custom_memory')?.addEventListener('input', updatePreview);
+document.getElementById('disk_size_num')?.addEventListener('input', updateDiskSize);
+
+init();
+goToStep(1);
+</script>
+</body>
+</html>{"mode":33188,"size":71584,"isFileValue":true,"isDirectoryValue":false,"isSocketValue":false,"isSymbolicLinkValue":false}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0f">
+  <title><%= title || 'VM Details - HKVM Panel' %></title>
+  <link rel="icon" href="<%= siteLogo %>" type="image/png">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+<!-- ============ SVG ICON SPRITE ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></symbol>
+    <symbol id="i-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="7" rx="2"/><rect x="2" y="14" width="20" height="7" rx="2"/><line x1="6" y1="6.5" x2="6.01" y2="6.5"/><line x1="6" y1="17.5" x2="6.01" y2="17.5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+    <symbol id="i-restart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></symbol>
+    <symbol id="i-ssh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></symbol>
+    <symbol id="i-mem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></symbol>
+    <symbol id="i-disc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+    <symbol id="i-network" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-4h14v4"/><path d="M12 12V8"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol>
+    <symbol id="i-scroll" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+    <symbol id="i-x-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol>
+    <symbol id="i-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+    <symbol id="i-unlink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.84 12.25l1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M5.17 11.75l-1.72 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71"/><line x1="8" y1="2" x2="8" y2="5"/><line x1="2" y1="8" x2="5" y2="8"/><line x1="16" y1="19" x2="16" y2="22"/><line x1="19" y1="16" x2="22" y2="16"/></symbol>
+    <symbol id="i-attach" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+    <symbol id="i-hash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+    <symbol id="i-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></symbol>
+  </defs>
+</svg>
+
+<div class="admin-wrapper">
+  <%- include('../part

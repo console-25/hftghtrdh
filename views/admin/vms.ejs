@@ -1,0 +1,1159 @@
+dius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #ef4444;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .ssh-status.connected {
+      background: rgba(16, 185, 129, 0.08);
+      border-color: rgba(16, 185, 129, 0.25);
+      color: #10b981;
+    }
+    
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .ssh-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .btn-ssh {
+      padding: 7px 14px;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    
+    .btn-connect {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      border: none;
+    }
+    
+    .btn-connect:hover {
+      opacity: 0.9;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    
+    .btn-disconnect {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      display: none;
+    }
+    
+    .btn-disconnect:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+    
+    .btn-back {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+    
+    .btn-back:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      color: var(--text-primary);
+    }
+    
+    /* Terminal Container */
+    .ssh-terminal {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #0a0a0f;
+      position: relative;
+    }
+    
+    /* xterm.js customization */
+    .terminal-wrapper {
+      flex: 1;
+      overflow: hidden;
+      background: #0a0a0f;
+    }
+    
+    .terminal-wrapper .xterm {
+      height: 100%;
+      padding: 10px;
+    }
+    
+    /* Modal Styles */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    
+    .modal-backdrop.show {
+      display: flex;
+      animation: fadeIn 0.25s ease-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .modal-dialog {
+      background: linear-gradient(135deg, #13131f 0%, #1a1f3a 100%);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+      animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .modal-header {
+      padding: 20px;
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+      border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .modal-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+    
+    .modal-body {
+      padding: 20px;
+    }
+    
+    .modal-footer {
+      padding: 16px 20px;
+      background: rgba(99, 102, 241, 0.02);
+      border-top: 1px solid rgba(99, 102, 241, 0.15);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 6px;
+      color: #f1f5f9;
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+      transition: all 0.2s;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: #6366f1;
+      background: rgba(15, 23, 42, 0.95);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    
+    .btn-modal {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+    
+    .btn-modal.primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+    }
+    
+    .btn-modal.primary:hover {
+      opacity: 0.9;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    
+    .btn-modal.secondary {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+    
+    .btn-modal.secondary:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      background: rgba(99, 102, 241, 0.05);
+    }
+    
+    /* Spinner for connecting */
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(99, 102, 241, 0.3);
+      border-top: 2px solid #6366f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 6px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="ssh-container">
+  <!-- Header -->
+  <div class="ssh-header">
+    <div class="ssh-title-section">
+      <div class="ssh-title">
+        <i class="fas fa-terminal" style="color: #6366f1;"></i>
+        SSH Terminal
+      </div>
+      <div class="ssh-status" id="statusBadge">
+        <span class="status-dot"></span>
+        <span id="statusText">Disconnected</span>
+      </div>
+    </div>
+    
+    <div class="ssh-controls">
+      <button class="btn-ssh btn-connect" id="connectBtn" onclick="openModal()">
+        <i class="fas fa-link"></i>
+        Connect
+      </button>
+      <button class="btn-ssh btn-disconnect" id="disconnectBtn" onclick="disconnect()">
+        <i class="fas fa-plug"></i>
+        Disconnect
+      </button>
+      <a href="/vms" class="btn-ssh btn-back">
+        <i class="fas fa-arrow-left"></i>
+        Back
+      </a>
+    </div>
+  </div>
+  
+  <!-- Terminal Display with xterm.js -->
+  <div class="ssh-terminal">
+    <div class="terminal-wrapper" id="terminalContainer"></div>
+  </div>
+</div>
+
+<!-- Connection Modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <i class="fas fa-lock" style="font-size: 20px; color: #6366f1;"></i>
+      <h2 class="modal-title">SSH Connection</h2>
+    </div>
+    
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Host / IP Address</label>
+        <input type="text" class="form-input" id="inputHost" placeholder="192.168.1.100 or localhost">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Port</label>
+        <input type="number" class="form-input" id="inputPort" value="22" min="1" max="65535">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input type="text" class="form-input" id="inputUsername" placeholder="root or ubuntu">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-input" id="inputPassword" placeholder="••••••••">
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-modal secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-modal primary" onclick="connect()" id="connectModalBtn">
+        <i class="fas fa-play"></i>
+        Connect
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- xterm.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.7.0/lib/xterm-addon-web-links.min.js"></script>
+
+<script>
+// ============= GLOBAL STATE =============
+const vmId = <%= vmId %>;
+const userId = <%= userId %>;
+let ws = null;
+let isConnected = false;
+let term = null;
+const fitAddon = new FitAddon.FitAddon();
+
+// ============= TERMINAL INITIALIZATION =============
+function initTerminal() {
+  const container = document.getElementById('terminalContainer');
+  
+  term = new Terminal({
+    cols: 120,
+    rows: 30,
+    theme: {
+      background: '#0a0a0f',
+      foreground: '#d1d5db',
+      cursor: '#6366f1',
+      cursorAccent: '#0a0a0f',
+      black: '#1e1e1e',
+      red: '#ef4444',
+      green: '#10b981',
+      yellow: '#f59e0b',
+      blue: '#3b82f6',
+      magenta: '#ec4899',
+      cyan: '#06b6d4',
+      white: '#d1d5db',
+      brightBlack: '#6b7280',
+      brightRed: '#ef4444',
+      brightGreen: '#10b981',
+      brightYellow: '#fbbf24',
+      brightBlue: '#60a5fa',
+      brightMagenta: '#f472b6',
+      brightCyan: '#22d3ee',
+      brightWhite: '#f1f5f9'
+    },
+    fontSize: 13,
+    fontFamily: "'Courier New', 'Courier', monospace",
+    lineHeight: 1.2,
+    letterSpacing: 0,
+    fontWeight: 400,
+    cursorStyle: 'block',
+    cursorBlink: true,
+    scrollback: 5000
+  });
+  
+  // Load add-ons
+  term.loadAddon(fitAddon);
+  term.loadAddon(new WebLinksAddon.WebLinksAddon());
+  
+  // Open terminal in container
+  term.open(container);
+  
+  // Fit terminal to container size
+  fitAddon.fit();
+  
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    try {
+      fitAddon.fit();
+    } catch (e) {
+      console.error('[Terminal] Resize error:', e);
+    }
+  });
+  
+  // Handle terminal input
+  term.onData(data => {
+    if (ws && ws.readyState === WebSocket.OPEN && isConnected) {
+      ws.send(JSON.stringify({
+        type: 'input',
+        data: data
+      }));
+    }
+  });
+  
+  console.log('[Terminal] xterm.js initialized');
+}
+
+// ============= CONNECTION FUNCTIONS =============
+function setConnected(state) {
+  isConnected = state;
+  const badge = document.getElementById('statusBadge');
+  const connectBtn = document.getElementById('connectBtn');
+  const disconnectBtn = document.getElementById('disconnectBtn');
+  
+  if (state) {
+    badge.classList.add('connected');
+    document.getElementById('statusText').textContent = 'Connected';
+    connectBtn.style.display = 'none';
+    disconnectBtn.style.display = 'inline-flex';
+    if (term) term.focus();
+  } else {
+    badge.classList.remove('connected');
+    document.getElementById('statusText').textContent = 'Disconnected';
+    connectBtn.style.display = 'inline-flex';
+    disconnectBtn.style.display = 'none';
+  }
+}
+
+// ============= MODAL FUNCTIONS =============
+function openModal() {
+  document.getElementById('modalBackdrop').classList.add('show');
+  document.getElementById('inputHost').focus();
+}
+
+function closeModal() {
+  document.getElementById('modalBackdrop').classList.remove('show');
+}
+
+// ============= SSH CONNECTION =============
+function connect() {
+  const host = document.getElementById('inputHost').value.trim();
+  const port = document.getElementById('inputPort').value.trim();
+  const username = document.getElementById('inputUsername').value.trim();
+  const password = document.getElementById('inputPassword').value;
+  
+  if (!host || !port || !username) {
+    alert('Please fill in Host, Port, and Username');
+    return;
+  }
+  
+  // Disable connect button during connection
+  const connectBtn = document.getElementById('connectModalBtn');
+  connectBtn.disabled = true;
+  const originalHTML = connectBtn.innerHTML;
+  connectBtn.innerHTML = '<span class="spinner"></span>Connecting...';
+  
+  closeModal();
+  
+  if (term) {
+    term.clear();
+    term.write('\r\n\u001b[1;36m╔═════════════════════════════════════════════╗\u001b[0m\r\n');
+    term.write('\u001b[1;36m║  🔐 Connecting to SSH Server...            ║\u001b[0m\r\n');
+    term.write('\u001b[1;36m╚═════════════════════════════════════════════╝\u001b[0m\r\n');
+    term.write(`\r\n\u001b[33m[*]\u001b[0m Connecting to ${username}@${host}:${port}...\r\n`);
+  }
+  
+  // Determine WebSocket protocol
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = proto + '//' + window.location.host + '/ssh-terminal';
+  
+  try {
+    ws = new WebSocket(wsUrl);
+    ws.binaryType = 'arraybuffer';
+    console.log('[SSH] Connecting to WebSocket:', wsUrl);
+  } catch (e) {
+    console.error('[SSH] WebSocket creation failed:', e);
+    if (term) {
+      term.write('\r\n\u001b[1;31m✗ Error: Failed to create WebSocket connection\u001b[0m\r\n');
+    }
+    connectBtn.disabled = false;
+    connectBtn.innerHTML = originalHTML;
+    return;
+  }
+  
+  ws.onopen = function() {
+    console.log('[SSH] WebSocket opened');
+    
+    // Send SSH connection request
+    const message = {
+      type: 'connect',
+      vmId: vmId,
+      host: host,
+      port: parseInt(port),
+      username: username,
+      password: password
+    };
+    
+    console.log('[SSH] Sending connect message');
+    ws.send(JSON.stringify(message));
+  };
+  
+  ws.onmessage = function(event) {
+    try {
+      // Check if it's binary data (SSH output) or JSON (control messages)
+      if (event.data instanceof ArrayBuffer) {
+        // Binary data from SSH stream
+        const uint8Array = new Uint8Array(event.data);
+        const text = String.fromCharCode.apply(null, uint8Array);
+        if (term) {
+          term.write(text);
+        }
+      } else {
+        // JSON control messages
+        const message = JSON.parse(event.data);
+        
+        if (message.type === 'connected') {
+          console.log('[SSH] SSH connection established');
+          setConnected(true);
+          if (term) {
+            term.write('\r\n\u001b[1;32m✓ SSH Connection Established\u001b[0m\r\n\r\n');
+          }
+          connectBtn.disabled = false;
+          connectBtn.innerHTML = originalHTML;
+        } else if (message.type === 'closed') {
+          console.log('[SSH] SSH connection closed');
+          if (term) {
+            term.write('\r\n\r\n\u001b[1;31m⛔ SSH Connection Closed\u001b[0m\r\n');
+          }
+          setConnected(false);
+        } else if (message.type === 'error') {
+          console.error('[SSH] Error:', message.message);
+          if (term) {
+            term.write('\r\n\u001b[1;31m✗ Error: ' + message.message + '\u001b[0m\r\n');
+          }
+          setConnected(false);
+          connectBtn.disabled = false;
+          connectBtn.innerHTML = originalHTML;
+        }
+      }
+    } catch (e) {
+      console.error('[SSH] Message parse error:', e);
+      // If it's not valid JSON, it's probably binary SSH data
+      if (event.data instanceof Blob) {
+        event.data.arrayBuffer().then(buffer => {
+          const uint8Array = new Uint8Array(buffer);
+          const text = String.fromCharCode.apply(null, uint8Array);
+          if (term) {
+            term.write(text);
+          }
+        });
+      }
+    }
+  };
+  
+  ws.onerror = function(error) {
+    console.error('[SSH] WebSocket error:', error);
+    if (term) {
+      term.write('\r\n\u001b[1;31m✗ WebSocket Error: Connection failed\u001b[0m\r\n');
+    }
+    setConnected(false);
+    connectBtn.disabled = false;
+    connectBtn.innerHTML = originalHTML;
+  };
+  
+  ws.onclose = function() {
+    console.log('[SSH] WebSocket closed');
+    if (isConnected) {
+      if (term) {
+        term.write('\r\n\r\n\u001b[1;31m⛔ SSH Connection Closed\u001b[0m\r\n');
+      }
+    }
+    setConnected(false);
+    connectBtn.disabled = false;
+    connectBtn.innerHTML = originalHTML;
+  };
+}
+
+function disconnect() {
+  if (ws) {
+    console.log('[SSH] Closing WebSocket');
+    ws.close();
+  }
+  setConnected(false);
+}
+
+// ============= MODAL HELPERS =============
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeModal();
+  }
+});
+
+// ============= INITIALIZATION =============
+async function initializePage() {
+  console.log('[SSH] Initializing page with vmId=' + vmId);
+  
+  try {
+    // Fetch VM details
+    const response = await fetch('/api/vms/' + vmId);
+    
+    if (!response.ok) {
+      console.error('[SSH] Failed to fetch VM:', response.status);
+      if (term) {
+        term.write('\u001b[1;31m✗ Error: Could not load VM details\u001b[0m\r\n');
+      }
+      return;
+    }
+    
+    const vm = await response.json();
+    console.log('[SSH] VM loaded:', vm.vm_name);
+    
+    // Verify ownership
+    if (vm.owner_id !== userId) {
+      console.warn('[SSH] User does not own this VM');
+      if (term) {
+        term.write('\u001b[1;31m✗ Access Denied: You do not own this VM\u001b[0m\r\n');
+      }
+      setTimeout(() => {
+        window.location.href = '/vms';
+      }, 2000);
+      return;
+    }
+    
+    // Auto-populate form with VM details
+    setTimeout(() => {
+      if (vm.ipv4_address) document.getElementById('inputHost').value = vm.ipv4_address;
+      if (vm.ssh_port) document.getElementById('inputPort').value = vm.ssh_port;
+      else if (vm.ssh_port_static) document.getElementById('inputPort').value = vm.ssh_port_static;
+      else document.getElementById('inputPort').value = 2222;
+      if (vm.username) document.getElementById('inputUsername').value = vm.username;
+      if (vm.password) document.getElementById('inputPassword').value = vm.password;
+      
+      console.log('[SSH] Form populated, opening modal');
+      openModal();
+    }, 300);
+    
+  } catch (e) {
+    console.error('[SSH] Initialization error:', e);
+    if (term) {
+      term.write('\u001b[1;31m✗ Error: ' + e.message + '\u001b[0m\r\n');
+    }
+  }
+}
+
+// ============= PAGE LOAD =============
+window.addEventListener('load', function() {
+  // Initialize terminal first
+  initTerminal();
+  
+  // Show welcome message
+  term.write('\r\n\u001b[1;36m╔════════════════════════════════════════════════════════════╗\u001b[0m\r\n');
+  term.write('\u001b[1;36m║  🔐 HKVM v1 SSH Terminal - Professional Remote Access     ║\u001b[0m\r\n');
+  term.write('\u001b[1;36m║  Powered by xterm.js | Like PuTTY, Termux, SSH over Web    ║\u001b[0m\r\n');
+  term.write('\u001b[1;36m╚════════════════════════════════════════════════════════════╝\u001b[0m\r\n');
+  term.write('\r\n\u001b[33m[*]\u001b[0m Click the \u001b[1mConnect\u001b[0m button or use \u001b[1;33mCtrl+O\u001b[0m to establish SSH connection\r\n');
+  term.write('\u001b[32m[✓]\u001b[0m After connecting, type commands directly in the terminal\r\n');
+  term.write('\u001b[34m[!]\u001b[0m Keyboard shortcuts:\r\n');
+  term.write('    • \u001b[1mCtrl+C\u001b[0m - Interrupt/stop running command\r\n');
+  term.write('    • \u001b[1mCtrl+D\u001b[0m - Close connection\r\n');
+  term.write('    • \u001b[1mCtrl+L\u001b[0m - Clear terminal screen\r\n');
+  term.write('\r\n\u001b[36m→ Ready for connection\u001b[0m\r\n\r\n');
+  
+  // Initialize page
+  initializePage();
+});
+
+// Add keyboard shortcut for quick connect (Ctrl+O)
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && (e.key === 'o' || e.key === 'O')) {
+    e.preventDefault();
+    if (!isConnected) {
+      openModal();
+    }
+  }
+});
+</script>
+
+</body>
+</html>
+
+{"mode":33188,"size":21598,"isFileValue":true,"isDirectoryValue":false,"isSocketValue":false,"isSymbolicLinkValue":false}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0f">
+  <title><%= title || 'My Virtual Machines - HKVM Panel' %></title>
+  <link rel="icon" href="<%= siteLogo %>" type="image/png">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    /* ============ SVG ICON SYSTEM ============ */
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1em;
+      height: 1em;
+      vertical-align: -0.125em;
+      flex-shrink: 0;
+    }
+    .icon svg { width: 100%; height: 100%; display: block; }
+
+    /* ============ PAGE HEADER (Purple background REMOVED, server icon REMOVED) ============ */
+    .page-header-enhanced {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 22px;
+      padding: 0 0 10px 0;
+      background: none;
+      border: none;
+      border-bottom: 1px solid var(--border-subtle);
+      border-radius: 0;
+      position: relative;
+      overflow: visible;
+    }
+    .page-header-enhanced::before {
+      content: none;
+    }
+    .page-title-enhanced {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0 0 6px 0;
+      color: var(--text-primary);
+    }
+    .title-icon-wrap {
+      display: none; /* Server icon hidden */
+    }
+    .page-subtitle-enhanced {
+      color: var(--text-muted);
+      margin: 0;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #10B981;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .live-badge .pulse {
+      width: 6px;
+      height: 6px;
+      background: #10B981;
+      border-radius: 50%;
+      animation: pulse-live 2s ease-in-out infinite;
+    }
+    @keyframes pulse-live {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+      50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    }
+
+    /* ============ STATS ============ */
+    .stats-enhanced {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .stat-card-enhanced {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .stat-card-enhanced::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--accent-color, #6366F1);
+    }
+    .stat-card-enhanced:hover {
+      transform: translateY(-3px);
+      border-color: var(--accent-color, #6366F1);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+    }
+    .stat-card-enhanced.active {
+      border-color: var(--accent-color, #6366F1);
+      background: color-mix(in srgb, var(--accent-color, #6366F1) 6%, var(--bg-card));
+    }
+    .stat-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .stat-icon-box {
+      width: 42px;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      font-size: 20px;
+      background: color-mix(in srgb, var(--accent-color, #6366F1) 15%, transparent);
+      color: var(--accent-color, #6366F1);
+      flex-shrink: 0;
+    }
+    .stat-value-enhanced {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-label-enhanced {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ============ FILTER BAR ============ */
+    .filter-bar-enhanced {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 12px;
+      flex-wrap: wrap;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+      max-width: 320px;
+    }
+    .search-wrap .search-icon-svg {
+      position: absolute;
+      top: 50%;
+      left: 12px;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+      width: 15px;
+      height: 15px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 9px 12px 9px 36px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: #6366F1;
+      background: rgba(99, 102, 241, 0.05);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    .filter-select {
+      padding: 9px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 140px;
+    }
+    .filter-select:hover, .filter-select:focus {
+      border-color: #6366F1;
+      outline: none;
+    }
+    .view-switcher {
+      display: flex;
+      gap: 4px;
+      padding: 3px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-left: auto;
+    }
+    .view-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 30px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+    .view-btn:hover { color: var(--text-primary); background: rgba(255, 255, 255, 0.04); }
+    .view-btn.active {
+      background: linear-gradient(135deg, #6366F1, #8B5CF6);
+      color: white;
+      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);
+    }
+
+    /* ============ REFRESH BUTTON ============ */
+    .btn-refresh {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 10px;
+      color: #6366F1;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-refresh:hover {
+      background: rgba(99, 102, 241, 0.18);
+      transform: translateY(-1px);
+    }
+    .btn-refresh.spinning svg { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============ VM GRID CARDS ============ */
+    .vm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 18px;
+    }
+    .vm-card-enhanced {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 14px;
+      padding: 18px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .vm-card-enhanced::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+    .vm-card-enhanced.running::before { background: linear-gradient(90deg, #10B981, #06B6D4); }
+    .vm-card-enhanced.stopped::before { background: linear-gradient(90deg, #6B7280, #4B5563); }
+    .vm-card-enhanced.error::before { background: linear-gradient(90deg, #EF4444, #DC2626); }
+    .vm-card-enhanced.paused::before { background: linear-gradient(90deg, #F59E0B, #F97316); }
+    .vm-card-enhanced:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .vm-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .vm-title-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+    .vm-os-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.08));
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+      padding: 6px;
+    }
+    .vm-os-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .vm-name-enhanced {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 3px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .vm-meta-enhanced {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .vm-id-chip {
+      background: rgba(99, 102, 241, 0.1);
+      color: #6366F1;
+      padding: 1px 7px;
+      border-radius: 6px;
+      font-family: 'SF Mono', monospace;
+      font-weight: 600;
+      font-size: 10px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+    .status-badge.running {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10B981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .status-badge.stopped {
+      background: rgba(107, 114, 128, 0.12);
+      color: #9CA3AF;
+      border: 1px solid rgba(107, 114, 128, 0.3);
+    }
+    .status-badge.error {
+      background: rgba(239, 68, 68, 0.12);
+      color: #EF4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .status-badge.paused {
+      background: rgba(245, 158, 11, 0.12);
+      color: #F59E0B;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .status-badge .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .status-badge.running .status-dot {
+      animation: pulse-live 2s ease-in-out infinite;
+    }
+
+    .vm-specs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+    .spec-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .spec-icon-mini {
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .spec-icon-mini.mem { background: rgba(16, 185, 129, 0.12); color: #10B981; }
+    .spec-icon-mini.cpu { background: rgba(236, 72, 153, 0.12); color: #EC4899; }
+    .spec-icon-mini.disk { background: rgba(6, 182, 212, 0.12); color: #06B6D4; }
+    .spec-icon-mini.net { background: rgba(59, 130, 246, 0.12); color: #3B82F6; }
+    .spec-content {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      flex: 1;
+    }
+    .spec-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+    .spec-value {
+      font-size: 12px;
+      color: var(--text-primary);
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .vm-actions-enhanced {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 8px 6px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      colo
