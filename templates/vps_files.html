@@ -1,0 +1,559 @@
+{% extends "base.html" %}
+{% block title %}File Manager - {{ vps.hostname or vps.container_name }} - {{ panel_name }}{% endblock %}
+{% block header_title %}File Manager - {{ vps.hostname or vps.container_name }}{% endblock %}
+{% block breadcrumbs %}
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}" class="breadcrumb-item">Dashboard</a>
+    <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+    <a href="{{ url_for('vps_list') }}" class="breadcrumb-item">My VPS</a>
+    <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+    <a href="{{ url_for('vps_detail', vps_id=vps.id) }}" class="breadcrumb-item">{{ vps.hostname or vps.container_name }}</a>
+    <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+    <span class="breadcrumb-item active">File Manager</span>
+</div>
+{% endblock %}
+{% block content %}
+
+{% if status != 'running' %}
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle"></i>
+    VPS is not running. File manager requires the VPS to be running.
+</div>
+{% else %}
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0;"><i class="fas fa-folder-open"></i> File Manager</h3>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-primary" onclick="showUploadModal()">
+                <i class="fas fa-upload"></i> Upload File
+            </button>
+            <button class="btn btn-success" onclick="showMkdirModal()">
+                <i class="fas fa-folder-plus"></i> New Folder
+            </button>
+            <button class="btn btn-outline" onclick="refreshFiles()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Breadcrumb Path -->
+    <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fas fa-folder" style="color: var(--accent-primary);"></i>
+        <div id="pathBreadcrumb" style="flex: 1; display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap;">
+            <span class="path-segment" onclick="navigateTo('/root')" style="cursor: pointer; color: var(--accent-primary);">/root</span>
+        </div>
+    </div>
+
+    <!-- File List -->
+    <div id="fileList" style="min-height: 400px;">
+        <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+            <p>Loading files...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-upload"></i> Upload File</h3>
+            <button class="modal-close" onclick="closeUploadModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Select File</label>
+                    <input type="file" id="fileInput" name="file" required style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-secondary);">
+                </div>
+                <div class="form-group">
+                    <label>Upload to</label>
+                    <input type="text" id="uploadPath" readonly style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-tertiary);">
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeUploadModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="uploadFile()">
+                <i class="fas fa-upload"></i> Upload
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Create Directory Modal -->
+<div id="mkdirModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-folder-plus"></i> Create Directory</h3>
+            <button class="modal-close" onclick="closeMkdirModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Directory Name</label>
+                <input type="text" id="dirName" placeholder="new-folder" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-secondary);">
+            </div>
+            <div class="form-group">
+                <label>Create in</label>
+                <input type="text" id="mkdirPath" readonly style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-tertiary);">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeMkdirModal()">Cancel</button>
+            <button class="btn btn-success" onclick="createDirectory()">
+                <i class="fas fa-folder-plus"></i> Create
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Rename Modal -->
+<div id="renameModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3><i class="fas fa-edit"></i> Rename</h3>
+            <button class="modal-close" onclick="closeRenameModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>New Name</label>
+                <input type="text" id="newName" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-secondary);">
+            </div>
+            <input type="hidden" id="renameOldPath">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeRenameModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="renameFile()">
+                <i class="fas fa-check"></i> Rename
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background-color: var(--bg-primary);
+    margin: 5% auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.modal-close:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.file-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.file-table th {
+    background: var(--bg-secondary);
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.file-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.file-table tr:hover {
+    background: var(--bg-secondary);
+}
+
+.file-icon {
+    width: 20px;
+    text-align: center;
+    margin-right: 0.5rem;
+}
+
+.file-name {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: var(--text-primary);
+}
+
+.file-name:hover {
+    color: var(--accent-primary);
+}
+
+.file-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.file-actions button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.path-segment {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.path-segment:hover {
+    background: var(--bg-tertiary);
+}
+</style>
+
+<script>
+let currentPath = '/root';
+const vpsId = {{ vps.id }};
+
+// Load files on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadFiles('/root');
+});
+
+function loadFiles(path) {
+    currentPath = path;
+    document.getElementById('fileList').innerHTML = '<div style="text-align: center; padding: 3rem; color: var(--text-secondary);"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i><p>Loading files...</p></div>';
+    
+    fetch(`/vps/${vpsId}/files/browse`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ path: path })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayFiles(data.files, data.path);
+            updateBreadcrumb(data.path);
+        } else {
+            showError(data.error);
+        }
+    })
+    .catch(error => {
+        showError('Failed to load files: ' + error);
+    });
+}
+
+function displayFiles(files, path) {
+    if (files.length === 0) {
+        document.getElementById('fileList').innerHTML = '<div style="text-align: center; padding: 3rem; color: var(--text-secondary);"><i class="fas fa-folder-open" style="font-size: 2rem; margin-bottom: 1rem;"></i><p>This directory is empty</p></div>';
+        return;
+    }
+    
+    let html = '<table class="file-table"><thead><tr><th>Name</th><th>Size</th><th>Modified</th><th>Permissions</th><th>Owner</th><th>Actions</th></tr></thead><tbody>';
+    
+    // Add parent directory link if not in root
+    if (path !== '/' && path !== '/root') {
+        const parentPath = path.substring(0, path.lastIndexOf('/')) || '/root';
+        html += `<tr><td colspan="6"><div class="file-name" onclick="navigateTo('${parentPath}')"><i class="fas fa-level-up-alt file-icon"></i><span>..</span></div></td></tr>`;
+    }
+    
+    files.forEach(file => {
+        const fullPath = `${path}/${file.name}`.replace('//', '/');
+        const icon = file.is_dir ? 'fa-folder' : (file.is_link ? 'fa-link' : 'fa-file');
+        const iconColor = file.is_dir ? 'var(--accent-primary)' : 'var(--text-secondary)';
+        
+        html += `<tr>
+            <td><div class="file-name" onclick="${file.is_dir ? `navigateTo('${fullPath}')` : ''}"><i class="fas ${icon} file-icon" style="color: ${iconColor};"></i><span>${file.name}</span></div></td>
+            <td>${file.size}</td>
+            <td>${file.modified}</td>
+            <td><code style="font-size: 0.875rem;">${file.permissions}</code></td>
+            <td>${file.owner}</td>
+            <td><div class="file-actions">
+                ${!file.is_dir ? `<button class="btn btn-sm btn-primary" onclick="downloadFile('${fullPath}')"><i class="fas fa-download"></i></button>` : ''}
+                <button class="btn btn-sm btn-outline" onclick="showRenameModal('${fullPath}', '${file.name}')"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-sm btn-danger" onclick="deleteFile('${fullPath}', ${file.is_dir})"><i class="fas fa-trash"></i></button>
+            </div></td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    document.getElementById('fileList').innerHTML = html;
+}
+
+function updateBreadcrumb(path) {
+    const parts = path.split('/').filter(p => p);
+    let html = '<span class="path-segment" onclick="navigateTo(\'/\')" style="cursor: pointer; color: var(--accent-primary);">/</span>';
+    let currentPath = '';
+    
+    parts.forEach((part, index) => {
+        currentPath += '/' + part;
+        const isLast = index === parts.length - 1;
+        html += `<span style="color: var(--text-secondary);">/</span>`;
+        html += `<span class="path-segment" onclick="navigateTo('${currentPath}')" style="cursor: pointer; color: ${isLast ? 'var(--text-primary)' : 'var(--accent-primary)'};">${part}</span>`;
+    });
+    
+    document.getElementById('pathBreadcrumb').innerHTML = html;
+}
+
+function navigateTo(path) {
+    loadFiles(path);
+}
+
+function refreshFiles() {
+    loadFiles(currentPath);
+}
+
+function showUploadModal() {
+    document.getElementById('uploadPath').value = currentPath;
+    document.getElementById('uploadModal').style.display = 'block';
+}
+
+function closeUploadModal() {
+    document.getElementById('uploadModal').style.display = 'none';
+    document.getElementById('uploadForm').reset();
+}
+
+function uploadFile() {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select a file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('path', currentPath);
+    
+    fetch(`/vps/${vpsId}/files/upload`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeUploadModal();
+            refreshFiles();
+            showSuccess(data.message);
+        } else {
+            showError(data.error);
+        }
+    })
+    .catch(error => {
+        showError('Upload failed: ' + error);
+    });
+}
+
+function downloadFile(path) {
+    fetch(`/vps/${vpsId}/files/download`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ path: path })
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.blob();
+        }
+        throw new Error('Download failed');
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = path.split('/').pop();
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    })
+    .catch(error => {
+        showError('Download failed: ' + error);
+    });
+}
+
+function deleteFile(path, isDir) {
+    if (!confirm(`Are you sure you want to delete this ${isDir ? 'directory' : 'file'}?\n\n${path}\n\nThis action cannot be undone.`)) {
+        return;
+    }
+    
+    fetch(`/vps/${vpsId}/files/delete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ path: path, is_dir: isDir })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            refreshFiles();
+            showSuccess(data.message);
+        } else {
+            showError(data.error);
+        }
+    })
+    .catch(error => {
+        showError('Delete failed: ' + error);
+    });
+}
+
+function showRenameModal(oldPath, oldName) {
+    document.getElementById('renameOldPath').value = oldPath;
+    document.getElementById('newName').value = oldName;
+    document.getElementById('renameModal').style.display = 'block';
+}
+
+function closeRenameModal() {
+    document.getElementById('renameModal').style.display = 'none';
+}
+
+function renameFile() {
+    const oldPath = document.getElementById('renameOldPath').value;
+    const newName = document.getElementById('newName').value.trim();
+    
+    if (!newName) {
+        alert('Please enter a new name');
+        return;
+    }
+    
+    fetch(`/vps/${vpsId}/files/rename`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ old_path: oldPath, new_name: newName })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeRenameModal();
+            refreshFiles();
+            showSuccess(data.message);
+        } else {
+            showError(data.error);
+        }
+    })
+    .catch(error => {
+        showError('Rename failed: ' + error);
+    });
+}
+
+function showMkdirModal() {
+    document.getElementById('mkdirPath').value = currentPath;
+    document.getElementById('mkdirModal').style.display = 'block';
+}
+
+function closeMkdirModal() {
+    document.getElementById('mkdirModal').style.display = 'none';
+    document.getElementById('dirName').value = '';
+}
+
+function createDirectory() {
+    const name = document.getElementById('dirName').value.trim();
+    
+    if (!name) {
+        alert('Please enter a directory name');
+        return;
+    }
+    
+    fetch(`/vps/${vpsId}/files/mkdir`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ path: currentPath, name: name })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeMkdirModal();
+            refreshFiles();
+            showSuccess(data.message);
+        } else {
+            showError(data.error);
+        }
+    })
+    .catch(error => {
+        showError('Create directory failed: ' + error);
+    });
+}
+
+function showSuccess(message) {
+    // Use existing notification system if available
+    if (typeof showNotification === 'function') {
+        showNotification(message, 'success');
+    } else {
+        alert(message);
+    }
+}
+
+function showError(message) {
+    // Use existing notification system if available
+    if (typeof showNotification === 'function') {
+        showNotification(message, 'error');
+    } else {
+        alert('Error: ' + message);
+    }
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
+}
+</script>
+
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,18 @@
+2026-02-28 13:26:28,343 - hvm_panel - INFO - API blueprint registered at /api/v1
+2026-02-28 13:26:28,857 - hvm_panel - INFO - Discord authentication fields added to users table
+2026-02-28 13:26:28,864 - hvm_panel - INFO - HVM PANEL v5.1-PRO-ULTIMATE starting...
+2026-02-28 13:26:28,867 - hvm_panel - INFO - Starting server on 0.0.0.0:5000
+2026-02-28 13:26:28,867 - hvm_panel - INFO - SocketIO available: True
+2026-02-28 13:26:28,867 - hvm_panel - INFO - Starting with SocketIO support (production mode)
+2026-02-28 13:26:28,868 - hvm_panel - INFO - Using Flask-SocketIO's built-in production server
+2026-02-28 13:26:28,868 - hvm_panel - INFO - For best performance, ensure eventlet or gevent is installed:
+2026-02-28 13:26:28,868 - hvm_panel - INFO -   pip install eventlet  OR  pip install gevent gevent-websocket
+2026-02-28 13:26:28,868 - werkzeug - WARNING - Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2026-02-28 13:26:28,879 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.17.0.2:5000
+2026-02-28 13:26:28,879 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-02-28 13:26:36,000 - werkzeug - INFO - 100.70.96.99 - - [28/Feb/2026 13:26:36] "[32mGET / HTTP/1.1[0m" 302 -
+2026-02-28 13:26:36,370 - werkzeug - INFO - 100.70.96.99 - - [28/Feb/2026 13:26:36] "GET /activate-license HTTP/1.1" 200 -
+2026-02-28 13:26:38,373 - werkzeug - INFO - 100.70.96.99 - - [28/Feb/2026 13:26:38] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -

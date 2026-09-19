@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activate License - {{ panel_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .license-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px;
+            max-width: 600px;
+            width: 100%;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .license-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .license-icon {
+            font-size: 80px;
+            color: #667eea;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+        
+        .license-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .license-subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 0;
+        }
+        
+        .license-form {
+            margin-top: 30px;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .license-input {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px 20px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+        
+        .license-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .activate-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: 600;
+            color: white;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .activate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .activate-btn:active {
+            transform: translateY(0);
+        }
+        
+        .activate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .alert {
+            border-radius: 10px;
+            border: none;
+            padding: 15px 20px;
+            margin-top: 20px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.15em;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .info-box h6 {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .info-box p {
+            color: #666;
+            margin-bottom: 0;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+        
+        .feature-list li {
+            padding: 10px 0;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .feature-list li i {
+            color: #667eea;
+            margin-right: 10px;
+            width: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="license-container">
+        <div class="license-header">
+            <div class="license-icon">
+                <i class="fas fa-key"></i>
+            </div>
+            <h1 class="license-title">Activate HVM Panel</h1>
+            <p class="license-subtitle">Enter your license key to unlock all features</p>
+        </div>
+        
+        <form id="licenseForm" class="license-form">
+            <div class="mb-3">
+                <label for="licenseKey" class="form-label">
+                    <i class="fas fa-shield-alt"></i> License Key
+                </label>
+                <input 
+                    type="text" 
+                    class="form-control license-input" 
+                    id="licenseKey" 
+                    name="license_key"
+                    placeholder="Enter your license key"
+                    required
+                    autocomplete="off"
+                    spellcheck="false">
+            </div>
+            
+            <div id="alertContainer"></div>
+            
+            <button type="submit" class="activate-btn" id="activateBtn">
+                <span id="btnText">
+                    <i class="fas fa-unlock-alt"></i> Activate License
+                </span>
+                <span id="btnSpinner" class="d-none">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    Activating...
+                </span>
+            </button>
+        </form>
+        
+        <div class="info-box">
+            <h6><i class="fas fa-info-circle"></i> What you'll get:</h6>
+            <ul class="feature-list">
+                <li><i class="fas fa-check-circle"></i> Full VPS management capabilities</li>
+                <li><i class="fas fa-check-circle"></i> Multi-node support</li>
+                <li><i class="fas fa-check-circle"></i> Advanced monitoring & analytics</li>
+                <li><i class="fas fa-check-circle"></i> Automated backups & snapshots</li>
+                <li><i class="fas fa-check-circle"></i> User management & permissions</li>
+                <li><i class="fas fa-check-circle"></i> API access & integrations</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('licenseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = e.target;
+            const licenseKey = document.getElementById('licenseKey').value.trim();
+            const activateBtn = document.getElementById('activateBtn');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const alertContainer = document.getElementById('alertContainer');
+            
+            // Clear previous alerts
+            alertContainer.innerHTML = '';
+            
+            // Disable button and show spinner
+            activateBtn.disabled = true;
+            btnText.classList.add('d-none');
+            btnSpinner.classList.remove('d-none');
+            
+            try {
+                const formData = new FormData();
+                formData.append('license_key', licenseKey);
+                
+                const response = await fetch('/activate-license', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Show success message
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> ${data.message}
+                        </div>
+                    `;
+                    
+                    // Redirect after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    // Show error message
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i> ${data.error}
+                        </div>
+                    `;
+                    
+                    // Re-enable button
+                    activateBtn.disabled = false;
+                    btnText.classList.remove('d-none');
+                    btnSpinner.classList.add('d-none');
+                }
+            } catch (error) {
+                // Show error message
+                alertContainer.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> An error occurred. Please try again.
+                    </div>
+                `;
+                
+                // Re-enable button
+                activateBtn.disabled = false;
+                btnText.classList.remove('d-none');
+                btnSpinner.classList.add('d-none');
+            }
+        });
+        
+        // Prevent page refresh on form submission
+        document.getElementById('licenseForm').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

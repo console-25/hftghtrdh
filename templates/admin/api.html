@@ -1,0 +1,510 @@
+{% extends "base.html" %}
+
+{% block title %}API Management - {{ panel_name }}{% endblock %}
+
+{% block header_title %}API Management{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumb">
+    <a href="{{ url_for('dashboard') }}" class="breadcrumb-item">Dashboard</a>
+    <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+    <a href="{{ url_for('admin_dashboard') }}" class="breadcrumb-item">Admin</a>
+    <span class="breadcrumb-separator"><i class="fas fa-chevron-right"></i></span>
+    <span class="breadcrumb-item active">API Management</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h2 style="font-size: 1.25rem; margin: 0 0 0.5rem 0;">API Management</h2>
+        <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">Manage API keys for programmatic access</p>
+    </div>
+    <button class="btn btn-primary" onclick="showCreateModal()">
+        <i class="fas fa-plus"></i> Create API Key
+    </button>
+</div>
+
+<!-- API Info Card -->
+<div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%); color: white;">
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+        <div style="width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: var(--border-radius); display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-code" style="font-size: 1.5rem;"></i>
+        </div>
+        <div>
+            <h3 style="margin: 0; font-size: 1.1rem;">HVM Panel REST API</h3>
+            <p style="margin: 0; opacity: 0.9; font-size: 0.875rem;">Full management capabilities via API</p>
+        </div>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2);">
+        <div>
+            <div style="font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.25rem;">API Endpoint</div>
+            <div style="font-weight: 600; font-family: monospace; font-size: 0.875rem;">/api/v1</div>
+        </div>
+        <div>
+            <div style="font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.25rem;">Authentication</div>
+            <div style="font-weight: 600; font-size: 0.875rem;">X-API-Key Header</div>
+        </div>
+        <div>
+            <div style="font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.25rem;">Format</div>
+            <div style="font-weight: 600; font-size: 0.875rem;">JSON</div>
+        </div>
+        <div>
+            <div style="font-size: 0.75rem; opacity: 0.9; margin-bottom: 0.25rem;">Total Keys</div>
+            <div style="font-weight: 600; font-size: 0.875rem;">{{ api_keys|length }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- API Keys List -->
+<div class="card">
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+        <div class="stat-icon primary" style="width: 48px; height: 48px;">
+            <i class="fas fa-key"></i>
+        </div>
+        <div>
+            <h3 style="margin: 0; font-size: 1.1rem;">API Keys</h3>
+            <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">Manage your API access keys</p>
+        </div>
+    </div>
+    
+    {% if api_keys %}
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; font-size: 0.875rem;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color);">
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-muted); font-weight: 600;">Name</th>
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-muted); font-weight: 600;">User</th>
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-muted); font-weight: 600;">Key</th>
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-muted); font-weight: 600;">Status</th>
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-muted); font-weight: 600;">Created</th>
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-muted); font-weight: 600;">Last Used</th>
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-muted); font-weight: 600;">Expires</th>
+                    <th style="padding: 0.75rem; text-align: center; color: var(--text-muted); font-weight: 600;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key in api_keys %}
+                <tr style="border-bottom: 1px solid var(--border-color);" id="key-row-{{ key.id }}">
+                    <td style="padding: 0.75rem;">
+                        <div style="font-weight: 600;">{{ key.name }}</div>
+                        {% if key.description %}
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">{{ key.description }}</div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        <div style="font-weight: 500;">{{ key.username }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ key.email }}</div>
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <code style="font-size: 0.75rem; background: var(--bg-tertiary); padding: 0.25rem 0.5rem; border-radius: var(--border-radius-sm); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="key-{{ key.id }}">{{ key.key[:20] }}...</code>
+                            <button class="btn btn-sm btn-outline" onclick="copyKey('{{ key.key }}', {{ key.id }})" title="Copy full key">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        {% if key.is_active %}
+                        <span class="badge success"><i class="fas fa-check-circle"></i> Active</span>
+                        {% else %}
+                        <span class="badge danger"><i class="fas fa-times-circle"></i> Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        <div style="font-size: 0.875rem;">{{ key.created_at[:10] }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ key.created_at[11:19] }}</div>
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        {% if key.last_used_at %}
+                        <div style="font-size: 0.875rem;">{{ key.last_used_at[:10] }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">{{ key.last_used_at[11:19] }}</div>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.875rem;">Never</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem;">
+                        {% if key.expires_at %}
+                        <div style="font-size: 0.875rem;">{{ key.expires_at[:10] }}</div>
+                        {% else %}
+                        <span class="badge info">Never</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.75rem; text-align: center;">
+                        <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                            <button class="btn btn-sm {% if key.is_active %}btn-warning{% else %}btn-success{% endif %}" 
+                                    onclick="toggleKey({{ key.id }})" 
+                                    title="{% if key.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                <i class="fas fa-{% if key.is_active %}pause{% else %}play{% endif %}"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteKey({{ key.id }}, '{{ key.name }}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+        <i class="fas fa-key" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem;"></i>
+        <p style="margin: 0; font-size: 1rem;">No API keys created yet</p>
+        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem;">Create your first API key to get started</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- API Documentation -->
+<div class="card" style="margin-top: 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+        <div class="stat-icon info" style="width: 48px; height: 48px;">
+            <i class="fas fa-book"></i>
+        </div>
+        <div>
+            <h3 style="margin: 0; font-size: 1.1rem;">Quick Start Guide</h3>
+            <p style="margin: 0; color: var(--text-muted); font-size: 0.875rem;">How to use the API</p>
+        </div>
+    </div>
+    
+    <div style="margin-bottom: 1.5rem;">
+        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem;">Authentication</h4>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: var(--text-muted);">Include your API key in the request header:</p>
+        <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: var(--border-radius-sm); overflow-x: auto; font-size: 0.875rem;"><code>X-API-Key: your_api_key_here</code></pre>
+    </div>
+    
+    <div style="margin-bottom: 1.5rem;">
+        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem;">Example Request</h4>
+        <pre style="background: var(--bg-tertiary); padding: 1rem; border-radius: var(--border-radius-sm); overflow-x: auto; font-size: 0.875rem;"><code>curl -X GET {{ request.url_root }}api/v1/vps \
+  -H "X-API-Key: your_api_key_here" \
+  -H "Content-Type: application/json"</code></pre>
+    </div>
+    
+    <div>
+        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem;">Available Endpoints</h4>
+        <div style="display: grid; gap: 0.75rem;">
+            <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--border-radius-sm); border-left: 3px solid var(--accent-primary);">
+                <div style="font-weight: 600; margin-bottom: 0.25rem;"><code>GET /api/v1/vps</code></div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">List all VPS</div>
+            </div>
+            <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--border-radius-sm); border-left: 3px solid var(--accent-success);">
+                <div style="font-weight: 600; margin-bottom: 0.25rem;"><code>GET /api/v1/vps/:id</code></div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">Get VPS details</div>
+            </div>
+            <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--border-radius-sm); border-left: 3px solid var(--accent-warning);">
+                <div style="font-weight: 600; margin-bottom: 0.25rem;"><code>POST /api/v1/vps/:id/start</code></div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">Start VPS</div>
+            </div>
+            <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--border-radius-sm); border-left: 3px solid var(--accent-danger);">
+                <div style="font-weight: 600; margin-bottom: 0.25rem;"><code>POST /api/v1/vps/:id/stop</code></div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">Stop VPS</div>
+            </div>
+            <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--border-radius-sm); border-left: 3px solid var(--accent-info);">
+                <div style="font-weight: 600; margin-bottom: 0.25rem;"><code>GET /api/v1/users</code></div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">List all users (admin only)</div>
+            </div>
+            <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--border-radius-sm); border-left: 3px solid var(--accent-primary);">
+                <div style="font-weight: 600; margin-bottom: 0.25rem;"><code>GET /api/v1/nodes</code></div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);">List all nodes (admin only)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create API Key Modal -->
+<div id="createModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 style="margin: 0;">Create API Key</h3>
+            <button class="modal-close" onclick="closeCreateModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="createForm" onsubmit="createKey(event)">
+                <div class="form-group">
+                    <label>Key Name <span style="color: var(--accent-danger);">*</span></label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g., Production API Key" required>
+                    <small style="color: var(--text-muted);">A descriptive name for this API key</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" class="form-control" rows="3" placeholder="Optional description"></textarea>
+                </div>
+                
+                {% if current_user.is_admin and users %}
+                <div class="form-group">
+                    <label>User</label>
+                    <select name="user_id" class="form-control">
+                        {% for user in users %}
+                        <option value="{{ user.id }}" {% if user.id == current_user.id %}selected{% endif %}>
+                            {{ user.username }} ({{ user.email }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
+                <div class="form-group">
+                    <label>Expiration</label>
+                    <select name="expires_days" class="form-control">
+                        <option value="">Never</option>
+                        <option value="30">30 days</option>
+                        <option value="90">90 days</option>
+                        <option value="180">180 days</option>
+                        <option value="365">1 year</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-outline" onclick="closeCreateModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create Key
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- API Key Display Modal -->
+<div id="keyModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 style="margin: 0;">API Key Created</h3>
+            <button class="modal-close" onclick="closeKeyModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="padding: 1rem; background: var(--bg-warning); border-radius: var(--border-radius); margin-bottom: 1rem; border-left: 4px solid var(--accent-warning);">
+                <div style="display: flex; align-items: start; gap: 0.75rem;">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--accent-warning); font-size: 1.25rem; margin-top: 0.125rem;"></i>
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 0.25rem;">Important: Save this key now!</div>
+                        <div style="font-size: 0.875rem;">This is the only time you'll see the full API key. Store it securely.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Your API Key</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="newApiKey" class="form-control" readonly style="font-family: monospace; font-size: 0.875rem;">
+                    <button class="btn btn-primary" onclick="copyNewKey()">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+            </div>
+            
+            <div style="margin-top: 1.5rem; text-align: right;">
+                <button class="btn btn-primary" onclick="closeKeyModal()">Done</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    animation: fadeIn 0.2s;
+}
+
+.modal-content {
+    background-color: var(--bg-secondary);
+    margin: 5% auto;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    animation: slideDown 0.3s;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-sm);
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+</style>
+
+<script>
+function showCreateModal() {
+    document.getElementById('createModal').style.display = 'block';
+}
+
+function closeCreateModal() {
+    document.getElementById('createModal').style.display = 'none';
+    document.getElementById('createForm').reset();
+}
+
+function closeKeyModal() {
+    document.getElementById('keyModal').style.display = 'none';
+    location.reload();
+}
+
+async function createKey(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    try {
+        const response = await fetch('{{ url_for("admin_api_create") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            closeCreateModal();
+            document.getElementById('newApiKey').value = result.api_key;
+            document.getElementById('keyModal').style.display = 'block';
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error creating API key: ' + error.message);
+    }
+}
+
+async function toggleKey(keyId) {
+    if (!confirm('Are you sure you want to toggle this API key status?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/api/${keyId}/toggle`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error toggling API key: ' + error.message);
+    }
+}
+
+async function deleteKey(keyId, keyName) {
+    if (!confirm(`Are you sure you want to delete the API key "${keyName}"? This action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/api/${keyId}/delete`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            document.getElementById(`key-row-${keyId}`).remove();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } catch (error) {
+        alert('Error deleting API key: ' + error.message);
+    }
+}
+
+function copyKey(key, keyId) {
+    navigator.clipboard.writeText(key).then(() => {
+        const btn = event.target.closest('button');
+        const icon = btn.querySelector('i');
+        icon.className = 'fas fa-check';
+        btn.classList.add('btn-success');
+        
+        setTimeout(() => {
+            icon.className = 'fas fa-copy';
+            btn.classList.remove('btn-success');
+        }, 2000);
+    });
+}
+
+function copyNewKey() {
+    const input = document.getElementById('newApiKey');
+    input.select();
+    navigator.clipboard.writeText(input.value).then(() => {
+        const btn = event.target.closest('button');
+        const icon = btn.querySelector('i');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+        }, 2000);
+    });
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const createModal = document.getElementById('createModal');
+    const keyModal = document.getElementById('keyModal');
+    
+    if (event.target == createModal) {
+        closeCreateModal();
+    }
+    if (event.target == keyModal) {
+        closeKeyModal();
+    }
+}
+</script>
+
+{% endblock %}
